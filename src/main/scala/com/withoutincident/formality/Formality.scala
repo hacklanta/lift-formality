@@ -8,7 +8,7 @@ import net.liftweb.util._
 
 import shapeless._
 
-object Formality {
+object Formality extends FieldValueHelpers {
   def field[T](selector: String, initialValue: T)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): FieldHolder[T, T, T, T] = {
     FieldHolder(selector, Full(initialValue), Nil, Nil)(valueConverter, valueSerializer)
   }
