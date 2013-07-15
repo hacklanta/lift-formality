@@ -70,7 +70,7 @@ case class FieldHolder[
   +ValueSerializerType >: FieldValueType
 ](
   selector: String,
-  initialValue: FieldValueType,
+  initialValue: Box[FieldValueType],
   validations: List[Validation[ValidationType]],
   eventHandlers: List[EventHandler[EventHandlerType]]
 )(
@@ -156,7 +156,7 @@ case class FieldHolder[
 
     val baseTransform =
       (selector + " [name]") #> functionId &
-      (selector + " [value]") #> valueSerializer(initialValue)
+      (selector + " [value]") #> (initialValue.map(valueSerializer) openOr "")
 
     val withValidations = validations.foldLeft(baseTransform)(_ & _.binder(selector))
 
