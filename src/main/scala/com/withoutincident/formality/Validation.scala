@@ -1,6 +1,7 @@
 package com.withoutincident
 package formality
 
+import net.liftweb.http.S
 import net.liftweb.common._
 import net.liftweb.util._
   import Helpers._
@@ -51,7 +52,7 @@ class basicInRange(start: Int, end: Int) extends Validation[Int] {
     if (value >= start && value <= end)
       Empty
     else
-      Full("should be between " + start + " and " + end)
+      Full((S ? "validation.inRange").format(start, end))
   }
 }
 object basicInRange {
@@ -68,7 +69,7 @@ object basicInRange {
 class basicNotEmpty extends Validation[String] {
   def apply(value: String) = {
     if (value.isEmpty)
-      Full("should not be empty")
+      Full(S ? "validation.notEmpty")
     else
       Empty
   }
@@ -120,7 +121,7 @@ object ParsleyValidations extends Html5Validations {
   case class minLength(minimumLength: Int) extends Validation[String] {
     def apply(value: String) = {
       if (value.length < minimumLength)
-        Full("should be at least " + minimumLength + " characters long")
+        Full((S ? "validation.minLength") format minimumLength)
       else
         Empty
     }
@@ -133,7 +134,7 @@ object ParsleyValidations extends Html5Validations {
   case class maxLength(maximumLength: Int) extends Validation[String] {
     def apply(value: String) = {
       if (value.length > maximumLength)
-        Full("should be at least " + maximumLength + " characters long")
+        Full((S ? "validation.maxLength") format maximumLength)
       else
         Empty
     }
