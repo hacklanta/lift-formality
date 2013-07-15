@@ -19,4 +19,7 @@ object Formality extends FieldValueHelpers {
   def on[T](eventName: String, handler: (T)=>JsCmd) = EventHandler[T](eventName, handler)
 
   def form = FormalityFormProto[HNil, HNil, HNil](HNil)
+
+  val :+: = shapeless.::
+  val HNil = shapeless.HNil
 }
