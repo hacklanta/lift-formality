@@ -35,3 +35,124 @@ object Validation {
     new Validation[T] { def apply(value: T) = validationFn(value) }
   }
 }
+
+/**
+ * Provides basic checking that a number is within a range. This can be
+ * used standalone, but it's recommended that you use it via one of its
+ * subclasses that also provides client-side annotations for the range.
+ *
+ * The range is inclusive.
+ *
+ * Example:
+ *   myField ? basicInRange(0, 100)
+ */
+class basicInRange(start: Int, end: Int) extends Validation[Int] {
+  def apply(value: Int) = {
+    if (value >= start && value <= end)
+      Empty
+    else
+      Full("should be between " + start + " and " + end)
+  }
+}
+object basicInRange {
+  def apply(start: Int, end: Int) = new basicInRange(start, end)
+}
+/**
+ * Provides basic checking that a string is not empty. This can be used
+ * standalone, but it's recommended that you use it via one of its
+ * subclasses that also provides client-side annotations for the range.
+ *
+ * Example:
+ *   myField ? basicNotEmpty
+ */
+class basicNotEmpty extends Validation[String] {
+  def apply(value: String) = {
+    if (value.isEmpty)
+      Full("should not be empty")
+    else
+      Empty
+  }
+}
+object basicNotEmpty {
+  def apply = new basicNotEmpty
+}
+
+trait Html5Validations {
+  /**
+   * Checks that a given int value is within the range [start, end]
+   * (inclusive).
+   */
+  case class inRange(start: Int, end: Int) extends basicInRange(start, end) {
+    override def binder(baseSelector: String) = {
+      (baseSelector + " [min]") #> start &
+      (baseSelector + " [max]") #> end
+    }
+  }
+
+  /**
+   * Checks that a given int value is within the range [start, end]
+   * (inclusive).
+   */
+  case object notEmpty extends basicNotEmpty {
+    override def binder(baseSelector: String) = {
+      (baseSelector + " [required]") #> "required"
+    }
+  }
+}
+/**
+ * Contains validations that apply HTML5 attributes to support them on
+ * the client.
+ */
+object Html5Validations extends Html5Validations
+/**
+ * Contains validations that apply parsley.js attributes to support them
+ * on the client. Validation names follow parsley.js names.
+ *
+ * FIXME These are incomplete.
+ */
+object ParsleyValidations extends Html5Validations {
+  case object notBlank extends basicNotEmpty {
+    override def binder(baseSelector: String) = {
+      (baseSelector + " [data-notblank]") #> "true"
+    }
+  }
+
+  case class minLength(minimumLength: Int) extends Validation[String] {
+    def apply(value: String) = {
+      if (value.length < minimumLength)
+        Full("should be at least " + minimumLength + " characters long")
+      else
+        Empty
+    }
+
+    override def binder(baseSelector: String) = {
+      (baseSelector + " [data-minlength]") #> minimumLength
+    }
+  }
+
+  case class maxLength(maximumLength: Int) extends Validation[String] {
+    def apply(value: String) = {
+      if (value.length > maximumLength)
+        Full("should be at least " + maximumLength + " characters long")
+      else
+        Empty
+    }
+
+    override def binder(baseSelector: String) = {
+      (baseSelector + " [data-minlength]") #> maximumLength
+    }
+  }
+
+  case class rangeLength(minimumLength: Int, maximumLength: Int) extends Validation[String] {
+    def apply(value: String) = {
+      if (value.length > maximumLength || value.length < minimumLength)
+        Full("should be between " + minimumLength + " and " + maximumLength + " characters long")
+      else
+        Empty
+    }
+
+    override def binder(baseSelector: String) = {
+      (baseSelector + " [data-rangelength]") #> "[%s,%s]".format(minimumLength, maximumLength)
+    }
+  }
+}
