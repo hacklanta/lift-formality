@@ -6,6 +6,8 @@ import net.liftweb.common._
 import net.liftweb.util._
   import Helpers._
 
+import shapeless._
+
 object NewForms {
   def field[T](selector: String, initialValue: T)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): FieldHolder[T, T, T, T] = {
     FieldHolder(selector, Full(initialValue), Nil, Nil)(valueConverter, valueSerializer)
@@ -15,4 +17,6 @@ object NewForms {
   }
 
   def on[T](eventName: String, handler: (T)=>JsCmd) = EventHandler[T](eventName, handler)
+
+  def form = FormalityFormProto[HNil, HNil, HNil](HNil)
 }
