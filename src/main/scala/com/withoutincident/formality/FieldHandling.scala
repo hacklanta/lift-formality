@@ -44,6 +44,11 @@ trait FieldHolderBase[FieldValueType] {
  * callbacks that call back to the server with the current inputted
  * value when certain events occur on the client.
  *
+ * This base provides about 80% of the structure that most fields will
+ * share. It provides an overridable handler function that will handle
+ * the field when it is submitted in a form. This can be overridden by
+ * child classes for e.g. file handling.
+ *
  * @param selector The CSS selector that identifies the field we'll be
  * binding to in the template. Note that the minimum amount of changes
  * are made to that field. For example, the type of the field
@@ -60,13 +65,23 @@ trait FieldHolderBase[FieldValueType] {
  * you are creating a field for a type that doesn't have a
  * pre-configured value converter. In that case you will have to provide
  * the converter yourself. See dateValueConverter as a quick example.
+ *
+ * @param eventHandlerValueConverter In most cases the same as the
+ * valueConverter. File uplaods, as one example of when this isn't the
+ * case, convert a FileParamHolder, but their event handlers still get a
+ * String.
  */
-case class FieldHolder[
+abstract class BaseFieldHolder[
+  // The type of the value incoming from Lift. Typically a String, but
+  // certain cases can arise, like file upload, where it may be
+  // something different.
+  IncomingValueType,
   FieldValueType,
   // for example, a Square value type should be able to use a Validation[Shape]
   ValidationType >: FieldValueType,
   // for example, a Square value type should be able to use a EventHandler
   EventHandlerType >: FieldValueType,
+  // our serializer can be from a supertype to a String if needed
   +ValueSerializerType >: FieldValueType
 ](
   selector: String,
@@ -74,12 +89,16 @@ case class FieldHolder[
   validations: List[Validation[ValidationType]],
   eventHandlers: List[EventHandler[EventHandlerType]]
 )(
-  implicit valueConverter: (String)=>Box[FieldValueType],
+  implicit valueConverter: (IncomingValueType)=>Box[FieldValueType],
+           eventHandlerValueConverter: (String)=>Box[FieldValueType],
            valueSerializer: (ValueSerializerType)=>String
 ) extends FieldHolderBase[FieldValueType] {
-  def validatingWith(validation: Validation[ValidationType]) = {
-    this.copy(validations = validation :: validations)
-  }
+  /**
+   * This should return a copy of this BaseFieldHolder with the
+   * specified validation attached. Left abstract because by far
+   * the best implementation is using a case class copy method.
+   */
+  def validatingWith(validation: Validation[ValidationType]): BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType, ValueSerializerType]
   /**
    * Adds the given validation to the list of validations run on this
    * field at form processing time. Note that validations may add
@@ -93,9 +112,12 @@ case class FieldHolder[
    */
   def ?(validation: Validation[ValidationType]) = validatingWith(validation)
 
-  def handlingEvent(eventHandler: EventHandler[EventHandlerType]) = {
-    this.copy(eventHandlers = eventHandler :: eventHandlers)
-  }
+  /**
+   * This should return a copy of this BaseFieldHolder with the
+   * specified event handler attached. Left abstract because by far the
+   * best implementation is using a case class copy method.
+   */
+  def handlingEvent(eventHandler: EventHandler[EventHandlerType]): BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType, ValueSerializerType]
   /**
    * Adds the given event handler to the list of event handlers this field
    * will have on the client. See EventHandler for more. Meant to be
@@ -108,8 +130,31 @@ case class FieldHolder[
    */
   def ->(eventHandler: EventHandler[EventHandlerType]) = handlingEvent(eventHandler)
 
-  private object fieldValue extends TransientRequestVar[Box[FieldValueType]](Empty)
+  /**
+   * The handler function should set this TransientRequestVar to the
+   * appropriate value.
+   */
+  protected object fieldValue extends TransientRequestVar[Box[FieldValueType]](Empty)
   def value = fieldValue.is
+
+  /**
+   * Creates a handler function, maps it (potentially using S.fmapFunc),
+   * and returns the resulting function id to bind to the HTML
+   * field. See the implementation in SimpleFieldHolder for a sample.
+   */
+  protected def generateFunctionIdAndHandler: String
+  /**
+   * Defines the base transform that adds the function id and initial
+   * value to the HTML field specified in the selector parameter. When
+   * overriding, it is highly suggested that you call
+   * super.baseTransform and append your own transforms to that.
+   */
+  protected def baseTransform: CssSel = {
+    val functionId = generateFunctionIdAndHandler
+
+    (selector + " [name]") #> functionId &
+    (selector + " [value]") #> initialValue.map(valueSerializer)
+  }
 
   /**
    * Provides the CSS transform that transforms an input field in the
@@ -117,8 +162,46 @@ case class FieldHolder[
    * conversion and validation functions, that will have the provided
    * initial value, and that will run this field's associated callbacks
    * for the event handlers it has specified.
+   *
+   * If you override the binder, please make sure you properly
+   * map your handler function, event handlers, and validations. This
+   * binder automatically calls generateFunctionIdAndHandler and binds
+   * its result to the name of the HTML field, and your code must do
+   * something similar to ensure the server-side function you define is
+   * called on form submission.
    */ 
   def binder: CssSel = {
+    val withValidations = validations.foldLeft(baseTransform)(_ & _.binder(selector))
+
+    eventHandlers.foldLeft(withValidations)(_ & _.binder(selector, eventHandlerValueConverter))
+  }
+}
+/**
+ * This case class creates a field holder for a simple field that gets a
+ * String from the client.
+ */
+case class SimpleFieldHolder[
+  FieldValueType,
+  ValidationType >: FieldValueType,
+  EventHandlerType >: FieldValueType,
+  +ValueSerializerType >: FieldValueType
+](
+  selector: String,
+  initialValue: Box[FieldValueType],
+  validations: List[Validation[ValidationType]],
+  eventHandlers: List[EventHandler[EventHandlerType]]
+)(
+  implicit valueConverter: (String)=>Box[FieldValueType],
+           valueSerializer: (ValueSerializerType)=>String
+) extends BaseFieldHolder[String, FieldValueType, ValidationType, EventHandlerType, ValueSerializerType](selector, initialValue, validations, eventHandlers) {
+  def validatingWith(validation: Validation[ValidationType]) = {
+    this.copy(validations = validation :: validations)
+  }
+  def handlingEvent(eventHandler: EventHandler[EventHandlerType]) = {
+    this.copy(eventHandlers = eventHandler :: eventHandlers)
+  }
+
+  protected def generateFunctionIdAndHandler: String = {
     // Awkward super-dirty, but we need to reference the function id in
     // the handler, and we only get the function id after mapping the
     // handler, so we have to go this route. As long as you don't run
@@ -154,13 +237,88 @@ case class FieldHolder[
 
     functionId = S.fmapFunc(handler _)(funcName => funcName)
 
-    val baseTransform =
-      (selector + " [name]") #> functionId &
-      (selector + " [value]") #> (initialValue.map(valueSerializer) openOr "")
+    functionId
+  }
+}
+/**
+ * This case class creates a field holder for a field that gets a
+ * FileParamHolder from the client. File upload fields behave this way.
+ *
+ * Note that FileFieldHolders do not have value serializers: they always
+ * produce an empty string for their serialized value when setting a
+ * value on the client. It also takes no initial value for the same
+ * reason.
+ */
+case class FileFieldHolder[
+  FieldValueType,
+  ValidationType >: FieldValueType,
+  EventHandlerType >: FieldValueType
+](
+  selector: String,
+  validations: List[Validation[ValidationType]],
+  eventHandlers: List[EventHandler[EventHandlerType]]
+)(
+  implicit valueConverter: (FileParamHolder)=>Box[FieldValueType]
+) extends BaseFieldHolder[FileParamHolder, FieldValueType, ValidationType, EventHandlerType, FieldValueType](
+            selector, Empty, validations, eventHandlers
+          )(
+            valueConverter,
+            { eventHandlingValue: String => Empty /* we don't get file values for event handlers */ },
+            { value: FieldValueType => ""}
+          ) {
+  def validatingWith(validation: Validation[ValidationType]) = {
+    this.copy(validations = validation :: validations)
+  }
+  def handlingEvent(eventHandler: EventHandler[EventHandlerType]) = {
+    this.copy(eventHandlers = eventHandler :: eventHandlers)
+  }
 
-    val withValidations = validations.foldLeft(baseTransform)(_ & _.binder(selector))
+  protected def generateFunctionIdAndHandler: String = {
+    // Awkward super-dirty, but we need to reference the function id in
+    // the handler, and we only get the function id after mapping the
+    // handler, so we have to go this route. As long as you don't run
+    // the handler before the fmapFunc runs, everything is peachy.
+    //
+    // WARNING: DON'T RUN THE HANDLER BEFORE THE FMAPFUNC RUNS.
+    //
+    // Kword? ;)
+    var functionId: String = null
 
-    eventHandlers.foldLeft(withValidations)(_ & _.binder(selector, valueConverter))
+    def handler(incomingValue: FileParamHolder): Unit = {
+      valueConverter(incomingValue) match {
+        case Full(convertedValue) =>
+          val validationErrors = validations.reverse.flatMap(_(convertedValue))
+
+          validationErrors.foreach { message =>
+            S.error(functionId, message)
+          }
+
+          if (validationErrors.isEmpty)
+            fieldValue(Full(convertedValue))
+          else
+            fieldValue(Failure(convertedValue + " failed validations.") ~> validationErrors)
+
+        case failure @ Failure(failureError, _, _) =>
+          fieldValue(failure)
+          S.error(functionId, failureError)
+        case Empty =>
+          fieldValue(Failure("Unrecognized response."))
+          S.error(functionId, "Unrecognized response.")
+      }
+    }
+
+    val intermediaryHandler = { fileHolder: FileParamHolder =>
+      if (fileHolder.length > 0)
+        handler(fileHolder)
+    }
+    functionId = S.fmapFunc(S.BinFuncHolder(intermediaryHandler))(funcName => funcName)
+
+    functionId
+  }
+
+  override protected def baseTransform: CssSel = {
+    super.baseTransform &
+    (selector + " [type]") #> "file"
   }
 }
 

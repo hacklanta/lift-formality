@@ -1,6 +1,7 @@
 package com.withoutincident
 package formality
 
+import net.liftweb.http.FileParamHolder
 import net.liftweb.http.js.JsCmd
 import net.liftweb.common._
 import net.liftweb.util._
@@ -9,11 +10,19 @@ import net.liftweb.util._
 import shapeless._
 
 object Formality extends FieldValueHelpers {
-  def field[T](selector: String, initialValue: T)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): FieldHolder[T, T, T, T] = {
-    FieldHolder(selector, Full(initialValue), Nil, Nil)(valueConverter, valueSerializer)
+  def field[T](selector: String, initialValue: T)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): SimpleFieldHolder[T, T, T, T] = {
+    SimpleFieldHolder(selector, Full(initialValue), Nil, Nil)(valueConverter, valueSerializer)
   }
-  def field[T](selector: String)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): FieldHolder[T, T, T, T] = {
+  def field[T](selector: String)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): SimpleFieldHolder[T, T, T, T] = {
     field[T](selector)(valueConverter, valueSerializer)
+  }
+
+  // Basic file upload field, spits out a FileParamHolder.
+  def fileUploadField(selector: String): FileFieldHolder[FileParamHolder, FileParamHolder, FileParamHolder] = {
+    FileFieldHolder(selector, Nil, Nil)(fph => Full(fph))
+  }
+  def fileUploadField[T](selector: String)(implicit valueConverter: (FileParamHolder)=>Box[T]): FileFieldHolder[T,T,T] = {
+    FileFieldHolder(selector, Nil, Nil)(valueConverter)
   }
 
   def on[T](eventName: String, handler: (T)=>JsCmd) = EventHandler[T](eventName, handler)

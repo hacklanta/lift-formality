@@ -98,12 +98,13 @@ case class FormalityFormProto[
   import FormalityForm._
 
   def withField[
+    IncomingValueType,
     FieldValueType,
     ValidationType >: FieldValueType,
     EventHandlerType >: FieldValueType,
     SerializerType >: FieldValueType
   ](
-    field: FieldHolder[FieldValueType, ValidationType, EventHandlerType, SerializerType]
+    field: BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType, SerializerType]
   ) = {
     this.copy[
       FieldHolderBase[FieldValueType] :: FieldList,
