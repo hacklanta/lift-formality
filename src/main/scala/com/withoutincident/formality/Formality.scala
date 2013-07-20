@@ -21,7 +21,7 @@ object Formality extends FieldValueHelpers {
   def fileUploadField(selector: String): FileFieldHolder[FileParamHolder, FileParamHolder, FileParamHolder] = {
     FileFieldHolder(selector, Nil, Nil)(fph => Full(fph))
   }
-  def fileUploadField[T](selector: String)(implicit valueConverter: (FileParamHolder)=>Box[T]): FileFieldHolder[T,T,T] = {
+  def typedFileUploadField[T](selector: String)(implicit valueConverter: (FileParamHolder)=>Box[T]): FileFieldHolder[T,T,T] = {
     FileFieldHolder(selector, Nil, Nil)(valueConverter)
   }
 
