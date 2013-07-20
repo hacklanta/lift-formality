@@ -14,7 +14,7 @@ object Formality extends FieldValueHelpers {
     SimpleFieldHolder(selector, Full(initialValue), Nil, Nil)(valueConverter, valueSerializer)
   }
   def field[T](selector: String)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): SimpleFieldHolder[T, T, T, T] = {
-    field[T](selector)(valueConverter, valueSerializer)
+    SimpleFieldHolder[T,T,T,T](selector, Empty, Nil, Nil)(valueConverter, valueSerializer)
   }
 
   // Basic file upload field, spits out a FileParamHolder.
