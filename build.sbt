@@ -15,6 +15,11 @@ resolvers += "Sonatype Snapshots Repository" at "http://oss.sonatype.org/content
   )
 }
 
-libraryDependencies += "com.chuusai" %% "shapeless" % "1.2.4"
+libraryDependencies ++= Seq(
+  "com.chuusai" %% "shapeless" % "1.2.4",
+  "org.specs2" %% "specs2" % "1.12.3" % "test"
+)
 
-scalacOptions += "-deprecation"
+scalacOptions ++= Seq("-deprecation","-Xfatal-warnings")
+
+scalacOptions in Test ++= Seq("-Yrangepos")
