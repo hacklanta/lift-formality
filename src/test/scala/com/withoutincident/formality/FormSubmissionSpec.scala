@@ -31,7 +31,8 @@ trait IntFieldContext extends SContext with Scope {
 
   val formField = field[Int]("#int-field")
 
-  def submitForm(binder: CssSel, formFieldValue: String = "5"): Unit = {
+  // Returns the field id of the int field.
+  def submitForm(binder: CssSel, formFieldValue: String = "5"): Option[String] = {
     val markup: NodeSeq = binder(
       <form>{
         inputWithId("int-field") ++
@@ -49,7 +50,7 @@ trait IntFieldContext extends SContext with Scope {
     for {
       intFieldName <- intField
       submitFieldName <- submitField
-    } {
+    } yield {
       val request = new MockHttpServletRequest(url = "/")
       request.parameters =
         (intFieldName -> formFieldValue) ::
@@ -59,6 +60,8 @@ trait IntFieldContext extends SContext with Scope {
       testReq(request) { req =>
         session.runParams(req)
       }
+
+      intFieldName
     }
   }
 }
@@ -104,7 +107,7 @@ class FormSubmissionSpec extends Specification {
       processedValue must_== -1
       failedValue match {
         case net.liftweb.common.Failure(_, _, _) => ok
-        case some => failure("Got " + some + " instead of a failure for an invalid int.")
+        case other => failure("Got " + other + " instead of a failure for an invalid int.")
       }
     }
     "provide input in ParamFailure if input was invalid" in new IntFieldContext {
@@ -120,8 +123,106 @@ class FormSubmissionSpec extends Specification {
       failedValue match {
         case ParamFailure(_, _, _, fieldValue) =>
           fieldValue must_== "bad int"
-        case some =>
-          failure("Got " + some + " instead of a param failure with the invalid input.")
+        case other =>
+          failure("Got " + other + " instead of a param failure with the invalid input.")
+      }
+    }
+  }
+
+  "Formality forms when submitting field with validations" should {
+    "not run success handler if validations don't pass" in new IntFieldContext {
+      var handlerRan = false
+
+      val validatingField = formField ? { incoming: Int =>  Full("Failed.") }
+      val testForm = form withField validatingField formalize() onSuccess {
+        case _ =>
+          handlerRan = true
+      }
+
+      submitForm(testForm.binder())
+
+      handlerRan must_== false
+    }
+    "have no validation errors on successful submission" in new IntFieldContext {
+      var handlerRan = false
+
+      val validatingField = formField ? { incoming: Int => Empty }
+      val testForm = form withField validatingField formalize() onSuccess {
+        case _ =>
+          handlerRan = true
+      }
+
+      submitForm(testForm.binder())
+
+      handlerRan must_== true
+      S.errors must haveLength(0)
+    }
+    "spit out a validation error if there is one" in new IntFieldContext {
+      val validatingField = formField ? { incoming: Int => Full("error") }
+      val testForm = form withField validatingField formalize()
+
+      submitForm(testForm.binder())
+
+      S.errors must haveLength(1)
+    }
+    "associate the validation error with the field name" in new IntFieldContext {
+      val validatingField = formField ? { incoming: Int => Full("error") }
+      val testForm = form withField validatingField formalize()
+
+      val intFieldName = submitForm(testForm.binder())
+
+      intFieldName match {
+        case Some(fieldName) =>
+          S.errors collect {
+            case (error, Full(name)) if fieldName == name =>
+              error
+          } must haveLength(1)
+
+        case _ =>
+          failure("Form transformation failed.")
+      }
+    }
+    "associate multiple validation errors with the field names" in new IntFieldContext {
+      val validatingField =
+        formField ?
+          { incoming: Int => Full("error") } ?
+          { incoming: Int => Full("second error") } ?
+          { incoming: Int => Full("other error") }
+      val testForm = form withField validatingField formalize()
+
+      val intFieldName = submitForm(testForm.binder())
+
+      intFieldName match {
+        case Some(fieldName) =>
+          S.errors collect {
+            case (error, Full(name)) if fieldName == name =>
+              error
+          } must haveLength(3)
+
+        case _ =>
+          failure("Form transformation failed.")
+      }
+    }
+    "provide the validation errors in the failure handler as a ParamFailure param" in new IntFieldContext {
+      var failedValue: Box[Int] = Empty
+
+      val validatingField =
+        formField ?
+          { incoming: Int => Full("error") } ?
+          { incoming: Int => Full("second error") } ?
+          { incoming: Int => Full("other error") }
+      val testForm = form withField validatingField formalize() onFailure {
+        case failure :+: HNil =>
+          failedValue = failure
+      }
+
+      val intFieldName = submitForm(testForm.binder())
+
+      failedValue match {
+        case ParamFailure(_, _, _, validationErrors) =>
+          validationErrors must_== List("error", "second error", "other error")
+        case other =>
+          failure("Got " + other + " instead of a param failure with the invalid input.")
       }
     }
   }
