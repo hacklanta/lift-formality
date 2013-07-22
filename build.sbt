@@ -11,7 +11,10 @@ resolvers += "Sonatype Snapshots Repository" at "http://oss.sonatype.org/content
 {
   val liftVersion = "2.6-SNAPSHOT"
   libraryDependencies ++= Seq(
-    "net.liftweb" %% "lift-webkit" % liftVersion
+    "net.liftweb" %% "lift-webkit" % liftVersion,
+
+    "net.liftweb" %% "lift-testkit" % liftVersion % "test",
+    "org.mortbay.jetty" % "jetty" % "6.1.22" % "test"
   )
 }
 
