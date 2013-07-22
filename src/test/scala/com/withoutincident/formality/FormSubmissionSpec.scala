@@ -107,5 +107,22 @@ class FormSubmissionSpec extends Specification {
         case some => failure("Got " + some + " instead of a failure for an invalid int.")
       }
     }
+    "provide input in ParamFailure if input was invalid" in new IntFieldContext {
+      var failedValue: Box[Int] = Empty
+
+      val testForm = form withField formField formalize() onFailure {
+        case failure :+: HNil =>
+          failedValue = failure
+      }
+
+      submitForm(testForm.binder(), formFieldValue = "bad int")
+
+      failedValue match {
+        case ParamFailure(_, _, _, fieldValue) =>
+          fieldValue must_== "bad int"
+        case some =>
+          failure("Got " + some + " instead of a param failure with the invalid input.")
+      }
+    }
   }
 }

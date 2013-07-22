@@ -227,10 +227,10 @@ case class SimpleFieldHolder[
             fieldValue(Failure(convertedValue + " failed validations.") ~> validationErrors)
 
         case failure @ Failure(failureError, _, _) =>
-          fieldValue(failure)
+          fieldValue(failure ~> incomingValue)
           S.error(functionId, failureError)
         case Empty =>
-          fieldValue(Failure("Unrecognized response."))
+          fieldValue(Failure("Unrecognized response.") ~> incomingValue)
           S.error(functionId, "Unrecognized response.")
       }
     }
