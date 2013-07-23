@@ -31,8 +31,7 @@ trait IntFieldContext extends SContext with Scope {
 
   val formField = field[Int]("#int-field")
 
-  // Returns the field id of the int field.
-  def submitForm(binder: CssSel, formFieldValue: String = "5"): Option[String] = {
+  def bindForm(binder: (NodeSeq)=>NodeSeq): NodeSeq = {
     val markup: NodeSeq = binder(
       <form>{
         inputWithId("int-field") ++
@@ -40,6 +39,10 @@ trait IntFieldContext extends SContext with Scope {
       }</form>
     )
 
+    markup
+  }
+
+  def submitForm(markup: NodeSeq, formFieldValue: String = "5", additionalValues: List[(String,String)] = Nil): Option[String] = {
     // Lift automatically does this when wrapping up the page
     // render. Without it, our fields won't register on submission.
     session.updateFunctionMap(S.functionMap, uniqueId = "render-version", when = 0l)
@@ -55,7 +58,7 @@ trait IntFieldContext extends SContext with Scope {
       request.parameters =
         (intFieldName -> formFieldValue) ::
         (submitFieldName -> "_") ::
-        Nil
+        additionalValues
 
       testReq(request) { req =>
         session.runParams(req)
@@ -63,6 +66,12 @@ trait IntFieldContext extends SContext with Scope {
 
       intFieldName
     }
+  }
+
+  // Returns the field id of the int field.
+  def bindAndSubmitForm(binder: (NodeSeq)=>NodeSeq, formFieldValue: String = "5", additionalValues: List[(String,String)] = Nil): Option[String] = {
+    val markup = bindForm(binder)
+    submitForm(markup, formFieldValue, additionalValues)
   }
 }
 
@@ -75,7 +84,7 @@ class FormSubmissionSpec extends Specification {
           handlerRan = true
       }
 
-      submitForm(testForm.binder())
+      bindAndSubmitForm(testForm.binder())
 
       handlerRan must_== true
     }
@@ -86,7 +95,7 @@ class FormSubmissionSpec extends Specification {
           processedValue = value
       }
 
-      submitForm(testForm.binder())
+      bindAndSubmitForm(testForm.binder())
 
       processedValue must_== 5
     }
@@ -102,7 +111,7 @@ class FormSubmissionSpec extends Specification {
           failedValue = failure
       }
 
-      submitForm(testForm.binder(), formFieldValue = "bad int")
+      bindAndSubmitForm(testForm.binder(), formFieldValue = "bad int")
 
       processedValue must_== -1
       failedValue match {
@@ -118,7 +127,7 @@ class FormSubmissionSpec extends Specification {
           failedValue = failure
       }
 
-      submitForm(testForm.binder(), formFieldValue = "bad int")
+      bindAndSubmitForm(testForm.binder(), formFieldValue = "bad int")
 
       failedValue match {
         case ParamFailure(_, _, _, fieldValue) =>
@@ -139,7 +148,7 @@ class FormSubmissionSpec extends Specification {
           handlerRan = true
       }
 
-      submitForm(testForm.binder())
+      bindAndSubmitForm(testForm.binder())
 
       handlerRan must_== false
     }
@@ -152,7 +161,7 @@ class FormSubmissionSpec extends Specification {
           handlerRan = true
       }
 
-      submitForm(testForm.binder())
+      bindAndSubmitForm(testForm.binder())
 
       handlerRan must_== true
       S.errors must haveLength(0)
@@ -161,7 +170,7 @@ class FormSubmissionSpec extends Specification {
       val validatingField = formField ? { incoming: Int => Full("error") }
       val testForm = form withField validatingField formalize()
 
-      submitForm(testForm.binder())
+      bindAndSubmitForm(testForm.binder())
 
       S.errors must haveLength(1)
     }
@@ -169,7 +178,7 @@ class FormSubmissionSpec extends Specification {
       val validatingField = formField ? { incoming: Int => Full("error") }
       val testForm = form withField validatingField formalize()
 
-      val intFieldName = submitForm(testForm.binder())
+      val intFieldName = bindAndSubmitForm(testForm.binder())
 
       intFieldName match {
         case Some(fieldName) =>
@@ -190,7 +199,7 @@ class FormSubmissionSpec extends Specification {
           { incoming: Int => Full("other error") }
       val testForm = form withField validatingField formalize()
 
-      val intFieldName = submitForm(testForm.binder())
+      val intFieldName = bindAndSubmitForm(testForm.binder())
 
       intFieldName match {
         case Some(fieldName) =>
@@ -216,7 +225,7 @@ class FormSubmissionSpec extends Specification {
           failedValue = failure
       }
 
-      val intFieldName = submitForm(testForm.binder())
+      val intFieldName = bindAndSubmitForm(testForm.binder())
 
       failedValue match {
         case ParamFailure(_, _, _, validationErrors) =>
