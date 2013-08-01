@@ -112,4 +112,44 @@ class FieldSpec extends Specification {
       )
     }
   }
+  "Select object fields with tuples" should {
+    val objects = List(
+      (new Exception("ohai"), "ohai"),
+      (new Exception("obai"), "obai"),
+      (new Exception("slabai"), "slabai")
+    )
+
+    "replace the  element wholesale with a select element" in new SContext {
+      val formField = selectField[Exception](".boomdayada", objects)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \(
+        "select",
+        "class" -> "boomdayada boomdayadan",
+        "data-test-attribute" -> "bam",
+        "name" -> ".*"
+      )
+    }
+  }
+  "Select object fields with just an object" should {
+    val objects = List(
+      "ohai",
+      "obai",
+      "slabai"
+    )
+
+    "replace the  element wholesale with a select element" in new SContext {
+      val formField = selectField[String](".boomdayada", objects)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \(
+        "select",
+        "class" -> "boomdayada boomdayadan",
+        "data-test-attribute" -> "bam",
+        "name" -> ".*"
+      )
+    }
+  }
 }

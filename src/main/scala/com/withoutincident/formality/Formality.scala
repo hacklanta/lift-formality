@@ -27,8 +27,14 @@ object Formality extends FieldValueHelpers {
   }
 
   // Basic  select fields.
-  def  selectField[T](selector: String, values: List[SelectableOption[T]]) = {
+  def selectField[T](selector: String, values: List[SelectableOption[T]]) = {
     SelectFieldHolder[T,T,T](selector, Empty, values, Nil, Nil)
+  }
+  def selectField[T](selector: String, values: List[(T, String)])(implicit dummy: DummyImplicit) = {
+    SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value._1, value._2)), Nil, Nil)
+  }
+  def selectField[T](selector: String, values: List[T])(implicit valueSerializer: (T)=>String) = {
+    SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil)
   }
 
   def on[T](eventName: String, handler: (T)=>JsCmd) = EventHandler[T](eventName, handler)
