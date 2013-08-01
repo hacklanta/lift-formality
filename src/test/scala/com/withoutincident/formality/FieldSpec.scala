@@ -91,4 +91,25 @@ class FieldSpec extends Specification {
       )
     }
   }
+
+  "Select object fields" should {
+    val objects = List(
+      SHtml.SelectableOption(new Exception("ohai"), "ohai"),
+      SHtml.SelectableOption(new Exception("obai"), "obai"),
+      SHtml.SelectableOption(new Exception("slabai"), "slabai")
+    )
+
+    "replace the  element wholesale with a select element" in new SContext {
+      val formField = selectField[Exception](".boomdayada", objects)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \(
+        "select",
+        "class" -> "boomdayada boomdayadan",
+        "data-test-attribute" -> "bam",
+        "name" -> ".*"
+      )
+    }
+  }
 }

@@ -26,6 +26,11 @@ object Formality extends FieldValueHelpers {
     FileFieldHolder(selector, Nil, Nil)(valueConverter)
   }
 
+  // Basic  select fields.
+  def  selectField[T](selector: String, values: List[SelectableOption[T]]) = {
+    SelectFieldHolder[T,T,T](selector, Empty, values, Nil, Nil)
+  }
+
   def on[T](eventName: String, handler: (T)=>JsCmd) = EventHandler[T](eventName, handler)
 
   def form = FormalityFormProto[HNil, HNil, HNil](HNil)

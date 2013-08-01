@@ -242,6 +242,114 @@ case class SimpleFieldHolder[
   }
 }
 /**
+ * This case class creates a field holder for a select field that gets a
+ * String from the client.
+ */
+case class SelectFieldHolder[
+  FieldValueType,
+  ValidationType >: FieldValueType,
+  EventHandlerType >: FieldValueType
+](
+  selector: String,
+  initialValue: Box[FieldValueType],
+  options: List[SelectableOption[FieldValueType]],
+  validations: List[Validation[ValidationType]],
+  eventHandlers: List[EventHandler[EventHandlerType]]
+) extends BaseFieldHolder[String, FieldValueType, ValidationType, EventHandlerType](
+            selector, initialValue, validations, eventHandlers
+          )(
+            eventHandlerValueConverter = { eventHandlingValue: String => Empty /* we don't get file values for event handlers */ }
+          ) {
+  val (noncedOptions, defaultNonce, optionProcessor) = {
+    final case class SelectableOptionWithNonce[+T](value: T, nonce: String, label: String, attrs: ElemAttr*)
+
+    val secure = options.map { selectableOption =>
+      SelectableOptionWithNonce(selectableOption.value, randomString(20), selectableOption.label, selectableOption.attrs: _*)
+    }
+
+    val defaultNonce = initialValue.flatMap { default =>
+      secure.find(_.value == default).map(_.nonce)
+    }
+
+    val nonces = secure.map { selectableOptionWithNonce =>
+      SelectableOption(selectableOptionWithNonce.nonce, selectableOptionWithNonce.label, selectableOptionWithNonce.attrs: _*)
+    }
+
+    def process(nonce: String): Box[FieldValueType] = secure.find(_.nonce == nonce).map(_.value)
+
+    (nonces, defaultNonce, process _)
+  }
+
+  protected def convertValue(incomingValue: String) = {
+    optionProcessor(incomingValue) ?~ "Unrecognized entry."
+  }
+  // We don't actually use this directly; instead, we set up the default value above.
+  protected def serializeValue(value: FieldValueType) = ""
+
+  def validatingWith(validation: Validation[ValidationType]) = {
+    this.copy(validations = validation :: validations)
+  }
+  def handlingEvent(eventHandler: EventHandler[EventHandlerType]) = {
+    this.copy(eventHandlers = eventHandler :: eventHandlers)
+  }
+
+  // We're replacing the whole select element, which means that we need to
+  // apply the validation/binder conversions to the resulting element directly.
+  override def binder: CssSel = {
+    val functionId = generateFunctionIdAndHandler
+    val select =
+      <select name={functionId}>{
+        noncedOptions.map { option =>
+          <option value={option.value}>{option.label}</option>
+        }
+      }</select>
+
+    val withValidations = validations.foldLeft("nothing" #> PassThru)(_ & _.binder(selector))
+    val fullBinder = eventHandlers.foldLeft(withValidations)(_ & _.binder(selector, (s: String) => Empty))
+    
+    selector #> fullBinder(select)
+  }
+
+  protected def generateFunctionIdAndHandler: String = {
+    // Awkward super-dirty, but we need to reference the function id in
+    // the handler, and we only get the function id after mapping the
+    // handler, so we have to go this route. As long as you don't run
+    // the handler before the fmapFunc runs, everything is peachy.
+    //
+    // WARNING: DON'T RUN THE HANDLER BEFORE THE FMAPFUNC RUNS.
+    //
+    // Kword? ;)
+    var functionId: String = null
+
+    def handler(incomingValue: String): Unit = {
+      convertValue(incomingValue) match {
+        case Full(convertedValue) =>
+          val validationErrors = validations.reverse.flatMap(_(convertedValue))
+
+          validationErrors.foreach { message =>
+            S.error(functionId, message)
+          }
+
+          if (validationErrors.isEmpty)
+            fieldValue(Full(convertedValue))
+          else
+            fieldValue(Failure(convertedValue + " failed validations.") ~> validationErrors)
+
+        case failure @ Failure(failureError, _, _) =>
+          fieldValue(failure ~> incomingValue)
+          S.error(functionId, failureError)
+        case Empty =>
+          fieldValue(Failure("Unrecognized response.") ~> incomingValue)
+          S.error(functionId, "Unrecognized response.")
+      }
+    }
+
+    functionId = S.fmapFunc(handler _)(funcName => funcName)
+
+    functionId
+  }
+}
+/**
  * This case class creates a field holder for a field that gets a
  * FileParamHolder from the client. File upload fields behave this way.
  *
