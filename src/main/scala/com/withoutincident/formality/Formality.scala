@@ -3,6 +3,7 @@ package formality
 
 import net.liftweb.http.FileParamHolder
 import net.liftweb.http.js.JsCmd
+import net.liftweb.http.SHtml.SelectableOption
 import net.liftweb.common._
 import net.liftweb.util._
   import Helpers._
@@ -10,11 +11,11 @@ import net.liftweb.util._
 import shapeless._
 
 object Formality extends FieldValueHelpers {
-  def field[T](selector: String, initialValue: T)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): SimpleFieldHolder[T, T, T, T] = {
+  def field[T](selector: String, initialValue: T)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): SimpleFieldHolder[T, T, T] = {
     SimpleFieldHolder(selector, Full(initialValue), Nil, Nil)(valueConverter, valueSerializer)
   }
-  def field[T](selector: String)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): SimpleFieldHolder[T, T, T, T] = {
-    SimpleFieldHolder[T,T,T,T](selector, Empty, Nil, Nil)(valueConverter, valueSerializer)
+  def field[T](selector: String)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): SimpleFieldHolder[T, T, T] = {
+    SimpleFieldHolder[T,T,T](selector, Empty, Nil, Nil)(valueConverter, valueSerializer)
   }
 
   // Basic file upload field, spits out a FileParamHolder.

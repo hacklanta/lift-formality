@@ -80,25 +80,24 @@ abstract class BaseFieldHolder[
   // for example, a Square value type should be able to use a Validation[Shape]
   ValidationType >: FieldValueType,
   // for example, a Square value type should be able to use a EventHandler
-  EventHandlerType >: FieldValueType,
-  // our serializer can be from a supertype to a String if needed
-  +ValueSerializerType >: FieldValueType
+  EventHandlerType >: FieldValueType
 ](
   selector: String,
   initialValue: Box[FieldValueType],
   validations: List[Validation[ValidationType]],
   eventHandlers: List[EventHandler[EventHandlerType]]
 )(
-  implicit valueConverter: (IncomingValueType)=>Box[FieldValueType],
-           eventHandlerValueConverter: (String)=>Box[FieldValueType],
-           valueSerializer: (ValueSerializerType)=>String
+  implicit eventHandlerValueConverter: (String)=>Box[FieldValueType]
 ) extends FieldHolderBase[FieldValueType] {
+  protected def convertValue(incomingValue: IncomingValueType): Box[FieldValueType]
+  protected def serializeValue(value: FieldValueType): String
+
   /**
    * This should return a copy of this BaseFieldHolder with the
    * specified validation attached. Left abstract because by far
    * the best implementation is using a case class copy method.
    */
-  def validatingWith(validation: Validation[ValidationType]): BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType, ValueSerializerType]
+  def validatingWith(validation: Validation[ValidationType]): BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType]
   /**
    * Adds the given validation to the list of validations run on this
    * field at form processing time. Note that validations may add
@@ -117,7 +116,7 @@ abstract class BaseFieldHolder[
    * specified event handler attached. Left abstract because by far the
    * best implementation is using a case class copy method.
    */
-  def handlingEvent(eventHandler: EventHandler[EventHandlerType]): BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType, ValueSerializerType]
+  def handlingEvent(eventHandler: EventHandler[EventHandlerType]): BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType]
   /**
    * Adds the given event handler to the list of event handlers this field
    * will have on the client. See EventHandler for more. Meant to be
@@ -153,7 +152,7 @@ abstract class BaseFieldHolder[
     val functionId = generateFunctionIdAndHandler
 
     (selector + " [name]") #> functionId &
-    (selector + " [value]") #> initialValue.map(valueSerializer)
+    (selector + " [value]") #> initialValue.map(serializeValue _)
   }
 
   /**
@@ -183,8 +182,7 @@ abstract class BaseFieldHolder[
 case class SimpleFieldHolder[
   FieldValueType,
   ValidationType >: FieldValueType,
-  EventHandlerType >: FieldValueType,
-  +ValueSerializerType >: FieldValueType
+  EventHandlerType >: FieldValueType
 ](
   selector: String,
   initialValue: Box[FieldValueType],
@@ -192,8 +190,11 @@ case class SimpleFieldHolder[
   eventHandlers: List[EventHandler[EventHandlerType]]
 )(
   implicit valueConverter: (String)=>Box[FieldValueType],
-           valueSerializer: (ValueSerializerType)=>String
-) extends BaseFieldHolder[String, FieldValueType, ValidationType, EventHandlerType, ValueSerializerType](selector, initialValue, validations, eventHandlers) {
+           valueSerializer: (FieldValueType)=>String
+) extends BaseFieldHolder[String, FieldValueType, ValidationType, EventHandlerType](selector, initialValue, validations, eventHandlers) {
+  protected def convertValue(incomingValue: String) = valueConverter(incomingValue)
+  protected def serializeValue(value: FieldValueType) = valueSerializer(value)
+
   def validatingWith(validation: Validation[ValidationType]) = {
     this.copy(validations = validation :: validations)
   }
@@ -213,7 +214,7 @@ case class SimpleFieldHolder[
     var functionId: String = null
 
     def handler(incomingValue: String): Unit = {
-      valueConverter(incomingValue) match {
+      convertValue(incomingValue) match {
         case Full(convertedValue) =>
           val validationErrors = validations.reverse.flatMap(_(convertedValue))
 
@@ -259,13 +260,14 @@ case class FileFieldHolder[
   eventHandlers: List[EventHandler[EventHandlerType]]
 )(
   implicit valueConverter: (FileParamHolder)=>Box[FieldValueType]
-) extends BaseFieldHolder[FileParamHolder, FieldValueType, ValidationType, EventHandlerType, FieldValueType](
+) extends BaseFieldHolder[FileParamHolder, FieldValueType, ValidationType, EventHandlerType](
             selector, Empty, validations, eventHandlers
           )(
-            valueConverter,
-            { eventHandlingValue: String => Empty /* we don't get file values for event handlers */ },
-            { value: FieldValueType => ""}
+            eventHandlerValueConverter = { eventHandlingValue: String => Empty /* we don't get file values for event handlers */ }
           ) {
+  protected def convertValue(incomingValue: FileParamHolder) = valueConverter(incomingValue)
+  protected def serializeValue(value: FieldValueType) = ""
+
   def validatingWith(validation: Validation[ValidationType]) = {
     this.copy(validations = validation :: validations)
   }

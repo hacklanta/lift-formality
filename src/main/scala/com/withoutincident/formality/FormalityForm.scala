@@ -101,10 +101,9 @@ case class FormalityFormProto[
     IncomingValueType,
     FieldValueType,
     ValidationType >: FieldValueType,
-    EventHandlerType >: FieldValueType,
-    SerializerType >: FieldValueType
+    EventHandlerType >: FieldValueType
   ](
-    field: BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType, SerializerType]
+    field: BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType]
   ) = {
     this.copy[
       FieldHolderBase[FieldValueType] :: FieldList,
