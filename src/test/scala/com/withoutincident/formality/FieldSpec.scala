@@ -92,14 +92,14 @@ class FieldSpec extends Specification {
     }
   }
 
-  "Select object fields" should {
+  "Select object fields with SelectableOptions" should {
     val objects = List(
       SHtml.SelectableOption(new Exception("ohai"), "ohai"),
       SHtml.SelectableOption(new Exception("obai"), "obai"),
       SHtml.SelectableOption(new Exception("slabai"), "slabai")
     )
 
-    "replace the  element wholesale with a select element" in new SContext {
+    "replace the element wholesale with a select element" in new SContext {
       val formField = selectField[Exception](".boomdayada", objects)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -109,6 +109,30 @@ class FieldSpec extends Specification {
         "class" -> "boomdayada boomdayadan",
         "data-test-attribute" -> "bam",
         "name" -> ".*"
+      )
+    }
+    "carry any SelectableOption attributes into the resulting options" in new SContext {
+      val objects = List(
+        SHtml.SelectableOption(new Exception("ohai"), "ohai", ("test" -> "bam")),
+        SHtml.SelectableOption(new Exception("obai"), "obai", ("other-test" -> "bam")),
+        SHtml.SelectableOption(new Exception("slabai"), "slabai", ("still-other-test" -> "bam"))
+      )
+
+      val formField = selectField[Exception](".boomdayada", objects)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \\(
+        <option>ohai</option>,
+        "test" -> "bam"
+      )
+      resultingMarkup must \\(
+        <option>obai</option>,
+        "other-test" -> "bam"
+      )
+      resultingMarkup must \\(
+        <option>slabai</option>,
+        "still-other-test" -> "bam"
       )
     }
   }

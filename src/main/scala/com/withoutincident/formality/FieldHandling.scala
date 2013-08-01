@@ -300,7 +300,7 @@ case class SelectFieldHolder[
     val select =
       <select name={functionId}>{
         noncedOptions.map { option =>
-          <option value={option.value}>{option.label}</option>
+          option.attrs.foldLeft(<option value={option.value}>{option.label}</option>)(_ % _)
         }
       }</select>
 
