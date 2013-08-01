@@ -296,11 +296,21 @@ case class SelectFieldHolder[
   // We're replacing the whole select element, which means that we need to
   // apply the validation/binder conversions to the resulting element directly.
   override def binder: CssSel = {
+    def selected(in: Boolean) = {
+      import  scala.xml._
+
+      if (in)
+        new UnprefixedAttribute("selected", "selected", Null)
+      else
+        Null
+    }
+
     val functionId = generateFunctionIdAndHandler
     val select =
       <select name={functionId}>{
         noncedOptions.map { option =>
-          option.attrs.foldLeft(<option value={option.value}>{option.label}</option>)(_ % _)
+          option.attrs.foldLeft(<option value={option.value}>{option.label}</option>)(_ % _) %
+          selected(defaultNonce === option.value)
         }
       }</select>
 

@@ -135,6 +135,23 @@ class FieldSpec extends Specification {
         "still-other-test" -> "bam"
       )
     }
+    "mark as selected the default object" in new SContext {
+      val default = new Exception("ohai")
+      val objects = List(
+        SHtml.SelectableOption(default, "ohai"),
+        SHtml.SelectableOption(new Exception("obai"), "obai"),
+        SHtml.SelectableOption(new Exception("slabai"), "slabai")
+      )
+
+      val formField = selectField[Exception](".boomdayada", objects, Full(default))
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \\(
+        <option>ohai</option>,
+        "selected" -> "selected"
+      )
+    }
   }
   "Select object fields with tuples" should {
     val objects = List(
@@ -155,6 +172,23 @@ class FieldSpec extends Specification {
         "name" -> ".*"
       )
     }
+    "mark as selected the default object" in new SContext {
+      val default = new Exception("ohai")
+      val objects = List(
+        (default, "ohai"),
+        (new Exception("obai"), "obai"),
+        (new Exception("slabai"), "slabai")
+      )
+
+      val formField = selectField[Exception](".boomdayada", objects, Full(default))
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \\(
+        <option>ohai</option>,
+        "selected" -> "selected"
+      )
+    }
   }
   "Select object fields with just an object" should {
     val objects = List(
@@ -173,6 +207,16 @@ class FieldSpec extends Specification {
         "class" -> "boomdayada boomdayadan",
         "data-test-attribute" -> "bam",
         "name" -> ".*"
+      )
+    }
+    "mark as selected the default object" in new SContext {
+      val formField = selectField[String](".boomdayada", objects, Full("ohai"))
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \\(
+        <option>ohai</option>,
+        "selected" -> "selected"
       )
     }
   }
