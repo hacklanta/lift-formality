@@ -312,7 +312,7 @@ case class SelectFieldHolder[
       <select name={functionId}>{
         noncedOptions.map { option =>
           option.attrs.foldLeft(<option value={option.value}>{option.label}</option>)(_ % _) %
-          selected(defaultNonce === option.value)
+            selected(defaultNonce === option.value)
         }
       }</select>
 
