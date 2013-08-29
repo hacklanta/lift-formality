@@ -1,7 +1,7 @@
 package com.withoutincident
 package formality
 
-import scala.xml.Elem
+import scala.xml._
 
 import org.specs2.mutable._
 import org.specs2.execute._
@@ -218,6 +218,36 @@ class FieldSpec extends Specification {
         <option>ohai</option>,
         "selected" -> "selected"
       )
+    }
+  }
+
+  "Checkbox fields with Boolean values" should {
+    "replace the element with a checkbox-hidden input pair" in new SContext {
+      val formField = checkboxField(".boomdayada", false)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \(
+        "input",
+        "type" -> "checkbox",
+        "name" -> ".*"
+      )
+      resultingMarkup must \(
+        "input",
+        "type" -> "hidden",
+        "name" -> ".*"
+      )
+
+      def nameForType(fieldType: String) = {
+        resultingMarkup \ "input" collectFirst {
+          case e: Elem if e.attribute("type") == Some(Text(fieldType)) =>
+            e.attribute("name").map(_.text)
+        } getOrElse {
+          None
+        }
+      }
+
+      nameForType("checkbox") must_== nameForType("hidden")
     }
   }
 }

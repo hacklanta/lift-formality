@@ -1,6 +1,8 @@
 package com.withoutincident
 package formality
 
+import scala.xml._
+
 import net.liftweb.common._
 import net.liftweb.http._
   import js._
@@ -351,6 +353,77 @@ case class SelectFieldHolder[
         case Empty =>
           fieldValue(Failure("Unrecognized response.") ~> incomingValue)
           S.error(functionId, "Unrecognized response.")
+      }
+    }
+
+    functionId = S.fmapFunc(handler _)(funcName => funcName)
+
+    functionId
+  }
+}
+case class CheckboxFieldHolder(
+  selector: String,
+  initialValue: Boolean,
+  validations: List[Validation[Boolean]],
+  eventHandlers: List[EventHandler[Boolean]]
+) extends BaseFieldHolder[String, Boolean, Boolean, Boolean](
+            selector, Full(initialValue), validations, eventHandlers
+          )(
+            eventHandlerValueConverter = (incomingValue: String) => Full(toBoolean(incomingValue))
+          ) {
+  def convertValue(incomingValue: String) = {
+    Full(toBoolean(incomingValue))
+  }
+  def serializeValue(value: Boolean) = {
+    if (value)
+      "true"
+    else
+      ""
+  }
+
+  def validatingWith(validation: Validation[Boolean]) = {
+    this.copy(validations = validation :: validations)
+  }
+  def handlingEvent(eventHandler: EventHandler[Boolean]) = {
+    this.copy(eventHandlers = eventHandler :: eventHandlers)
+  }
+
+  override protected def baseTransform: CssSel = {
+    val functionId = generateFunctionIdAndHandler
+
+    selector #> { ns: NodeSeq => ns match {
+      case element: Elem =>
+        val checkbox = <input type="checkbox" name={functionId} value={serializeValue(initialValue)} />
+
+        element.attributes.foldLeft(checkbox)(_ % _) ++
+        <input type="hidden" name={functionId} value="false" />
+    } }
+  }
+
+  protected def generateFunctionIdAndHandler: String = {
+    // Awkward super-dirty, but we need to reference the function id in
+    // the handler, and we only get the function id after mapping the
+    // handler, so we have to go this route. As long as you don't run
+    // the handler before the fmapFunc runs, everything is peachy.
+    //
+    // WARNING: DON'T RUN THE HANDLER BEFORE THE FMAPFUNC RUNS.
+    //
+    // Kword? ;)
+    var functionId: String = null
+
+    def handler(incomingValue: String): Unit = {
+      convertValue(incomingValue) match {
+        case Full(convertedValue) =>
+          val validationErrors = validations.reverse.flatMap(_(convertedValue))
+
+          validationErrors.foreach { message =>
+            S.error(functionId, message)
+          }
+
+          if (validationErrors.isEmpty)
+            fieldValue(Full(convertedValue))
+          else
+            fieldValue(Failure(convertedValue + " failed validations.") ~> validationErrors)
       }
     }
 

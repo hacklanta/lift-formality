@@ -46,6 +46,10 @@ object Formality extends FieldValueHelpers {
     SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil)
   }
 
+  def checkboxField(selector: String, default: Boolean = false) = {
+    CheckboxFieldHolder(selector, default, Nil, Nil)
+  }
+
   def on[T](eventName: String, handler: (T)=>JsCmd) = EventHandler[T](eventName, handler)
 
   def form = FormalityFormProto[HNil, HNil, HNil](HNil)
