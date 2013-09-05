@@ -122,7 +122,7 @@ abstract class BaseFieldHolder[
   /**
    * Adds the given event handler to the list of event handlers this field
    * will have on the client. See EventHandler for more. Meant to be
-   * used with NewForms.on for fluency (e.g., field -> on("change", checkStuff _)).
+   * used with Formality.on for fluency (e.g., field -> on("change", checkStuff _)).
    *
    * Note that FieldHolders are immutable; this returns a copy of this
    * FieldHolder with an updated event handler list.
