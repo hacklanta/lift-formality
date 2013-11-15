@@ -1,6 +1,6 @@
 name := "lift-formality"
 
-organization := "com.withoutincident"
+organization := "com.hacklanta"
 
 version := "0.1-SNAPSHOT"
 
