@@ -168,15 +168,16 @@ Formality can also add server-side event handlers to form inputs:
 ```
 
 `-> on(<event>, <handler)` is the syntax used to add an event handler to
-a field. The event is whatever the event name will be on the client, as a
-`String`, and the handler takes in the deserialized incoming value and
+a field. The `event` is whatever the event name will be on the client, as a
+`String`, and the `handler` takes in the deserialized incoming value and
 does something with it. It is expected to return a `JsCmd`, though keep
 in mind that there is an implicit conversion from `Unit` to `JsCmd`
 when necessary. Above, on change, we disable the terms and conditions
-checkbox to ensure the user cannot select it if they are below 15*.
+checkbox to ensure the user cannot select it if they are below
+15[*](#client-note)<a name="client-note-return"></a>.
 
-* - Obviously we could do this on the client as well, but this is merely
-an example :)
+<a name="client-node"></a>* - Obviously we could do this on the client as
+well, but this is merely an example :) [↩](#client-note-return)
 
 ### Operator Allergies
 
