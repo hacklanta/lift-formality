@@ -27,23 +27,26 @@ object Formality extends FieldValueHelpers {
   }
 
   // Basic  select fields.
-  def selectField[T](selector: String, values: List[SelectableOption[T]]) = {
-    SelectFieldHolder[T,T,T](selector, Empty, values, Nil, Nil)
+  def selectField[T](selector: String, values: List[SelectableOption[T]], asRadioButtons: Boolean = false) = {
+    SelectFieldHolder[T,T,T](selector, Empty, values, Nil, Nil, asRadioButtons)
   }
   def selectField[T](selector: String, values: List[SelectableOption[T]], default: Box[T]) = {
-    SelectFieldHolder[T,T,T](selector, default, values, Nil, Nil)
+    SelectFieldHolder[T,T,T](selector, default, values, Nil, Nil, false)
+  }
+  def selectField[T](selector: String, values: List[SelectableOption[T]], default: Box[T], asRadioButtons: Boolean) = {
+    SelectFieldHolder[T,T,T](selector, default, values, Nil, Nil, asRadioButtons)
   }
   def selectField[T](selector: String, values: List[(T, String)])(implicit dummy: DummyImplicit) = {
-    SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value._1, value._2)), Nil, Nil)
+    SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value._1, value._2)), Nil, Nil, false)
   }
   def selectField[T](selector: String, values: List[(T, String)], default: Box[T])(implicit dummy: DummyImplicit) = {
-    SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value._1, value._2)), Nil, Nil)
+    SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value._1, value._2)), Nil, Nil, false)
   }
   def selectField[T](selector: String, values: List[T])(implicit valueSerializer: (T)=>String) = {
-    SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil)
+    SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil, false)
   }
   def selectField[T](selector: String, values: List[T], default: Box[T])(implicit valueSerializer: (T)=>String) = {
-    SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil)
+    SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil, false)
   }
 
   def checkboxField(selector: String, default: Boolean = false) = {

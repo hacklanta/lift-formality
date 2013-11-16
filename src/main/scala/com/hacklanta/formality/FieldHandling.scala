@@ -245,7 +245,21 @@ case class SimpleFieldHolder[
 }
 /**
  * This case class creates a field holder for a select field that gets a
- * String from the client.
+ * `String` from the client. If `asRadioButtons` is `true`, the binder created
+ * for this select field is designed to bind to radio buttons and their
+ * labels instead of producing a select field.
+ *
+ * When dealing with `select` elements (i.e., `asRadioButtons` is `false`),
+ * the whole element specified by `selector` will be replaced by a new `select`
+ * element.
+ *
+ * When `asRadioButtons` is `true`, the element specified by `selector` will be
+ * repeated once for each of the passed `options`. The option label will be
+ * used to set the text of the `label`. If the radio button is nested in the
+ * `label`, it will be left at the end of the `label`. If a given
+ * `SelectableOption` specifies an `id` attribute, in addition to that
+ * attribute being set on the radio button, the `for` attribute of the `label`
+ * element (if present) will be set to the same value.
  */
 case class SelectFieldHolder[
   FieldValueType,
@@ -256,7 +270,8 @@ case class SelectFieldHolder[
   initialValue: Box[FieldValueType],
   options: List[SelectableOption[FieldValueType]],
   validations: List[Validation[ValidationType]],
-  eventHandlers: List[EventHandler[EventHandlerType]]
+  eventHandlers: List[EventHandler[EventHandlerType]],
+  asRadioButtons: Boolean
 ) extends BaseFieldHolder[String, FieldValueType, ValidationType, EventHandlerType](
             selector, initialValue, validations, eventHandlers
           )(
@@ -295,9 +310,58 @@ case class SelectFieldHolder[
     this.copy(eventHandlers = eventHandler :: eventHandlers)
   }
 
+  override val binder: CssSel =
+    if (asRadioButtons)
+      radioButtonBinder
+    else
+      selectBinder
+
+  def radioButtonBinder = {
+    val functionId = generateFunctionIdAndHandler
+
+    val withValidations = validations.foldLeft("nothing" #> PassThru)(_ & _.binder(selector))
+    val validationsAndEvents = eventHandlers.foldLeft(withValidations)(_ & _.binder(selector, optionProcessor))
+
+    selector #> noncedOptions.map { option =>
+      val radioBinder =
+        "type=radio [name]" #> functionId &
+        "type=radio [value]" #> option.value &
+        "type=radio [selected]" #> Some("selected").filter(_ => Full(option.value) == defaultNonce) &
+        "type=radio" #> validationsAndEvents
+
+      val (idAttribute, radioBinderWithAttributes) =
+        option.attrs.foldLeft((None: Option[String], radioBinder)) { (binderSoFar, attribute) =>
+          attribute match {
+            case BasicElemAttr(name, value) =>
+              val updatedBinder =
+                binderSoFar._2 &
+                ("type=radio [" + name + "]") #> value
+
+              if (name == "id")
+                (Some(value), updatedBinder)
+              else
+                (binderSoFar._1, updatedBinder)
+            case _ =>
+              binderSoFar
+          }
+        }
+
+      "label" #> { ns: NodeSeq => ns match {
+        case label: Elem if label.label == "label" =>
+          val nonTextChildren = label.child.filterNot(_.isInstanceOf[Text])
+
+          val updatedLabel =
+            idAttribute.foldLeft(label.copy(child = Text(option.label) ++ nonTextChildren))(_ % ("for", _))
+
+          radioBinderWithAttributes apply updatedLabel
+      } } &
+      radioBinderWithAttributes
+    }
+  }
+
   // We're replacing the whole select element, which means that we need to
   // apply the validation/binder conversions to the resulting element directly.
-  override def binder: CssSel = {
+  def selectBinder = {
     def selected(in: Boolean) = {
       import  scala.xml._
 
@@ -317,7 +381,7 @@ case class SelectFieldHolder[
       }</select>
 
     val withValidations = validations.foldLeft("nothing" #> PassThru)(_ & _.binder(selector))
-    val fullBinder = eventHandlers.foldLeft(withValidations)(_ & _.binder(selector, (s: String) => Empty))
+    val fullBinder = eventHandlers.foldLeft(withValidations)(_ & _.binder(selector, optionProcessor))
     
     selector #> fullBinder(select)
   }
