@@ -521,8 +521,6 @@ case class MultiSelectFieldHolder[
         Null
     }
 
-    println(defaultNonces)
-    println(noncedOptions)
     val functionId = generateFunctionIdAndHandler
     val select =
       <select name={functionId} multiple="multiple">{
