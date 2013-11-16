@@ -27,38 +27,41 @@ object Formality extends FieldValueHelpers {
   }
 
   // Basic  select fields.
-  def selectField[T](selector: String, values: List[SelectableOption[T]], asRadioButtons: Boolean = false) = {
-    SelectFieldHolder[T,T,T](selector, Empty, values, Nil, Nil, asRadioButtons)
+  // NOTE: Order matters. In particular, reordering the declarations of the
+  // List[SelectableOption] functions will probably break the compile. Why?
+  // Your guess is as good as mine.
+  def selectField[T](selector: String, values: List[SelectableOption[T]], asRadioButtons: Boolean = false): SelectFieldHolder[T,T,T] = {
+    selectField[T](selector, values, Empty, asRadioButtons)
   }
   def selectField[T](selector: String, values: List[SelectableOption[T]], default: Box[T]) = {
-    SelectFieldHolder[T,T,T](selector, default, values, Nil, Nil, false)
+    selectField[T](selector, values, default, false)
   }
   def selectField[T](selector: String, values: List[SelectableOption[T]], default: Box[T], asRadioButtons: Boolean) = {
     SelectFieldHolder[T,T,T](selector, default, values, Nil, Nil, asRadioButtons)
   }
   def selectField[T](selector: String, values: List[(T, String)])(implicit dummy: DummyImplicit) = {
-    SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value._1, value._2)), Nil, Nil, false)
+    selectField[T](selector, values.map(value => SelectableOption(value._1, value._2)), false)
   }
   def selectField[T](selector: String, values: List[(T, String)], asRadioButtons: Boolean)(implicit dummy: DummyImplicit) = {
-    SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value._1, value._2)), Nil, Nil, asRadioButtons)
+    selectField[T](selector, values.map(value => SelectableOption(value._1, value._2)), asRadioButtons)
   }
   def selectField[T](selector: String, values: List[(T, String)], default: Box[T])(implicit dummy: DummyImplicit) = {
-    SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value._1, value._2)), Nil, Nil, false)
+    selectField[T](selector, values.map(value => SelectableOption(value._1, value._2)), default, false)
   }
   def selectField[T](selector: String, values: List[(T, String)], default: Box[T], asRadioButtons: Boolean)(implicit dummy: DummyImplicit) = {
-    SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value._1, value._2)), Nil, Nil, asRadioButtons)
+    selectField[T](selector, values.map(value => SelectableOption(value._1, value._2)), default, asRadioButtons)
   }
   def selectField[T](selector: String, values: List[T])(implicit valueSerializer: (T)=>String) = {
-    SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil, false)
+    selectField[T](selector, values.map(value => SelectableOption(value, valueSerializer(value))), false)
   }
   def selectField[T](selector: String, values: List[T], asRadioButtons: Boolean)(implicit valueSerializer: (T)=>String) = {
-    SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil, asRadioButtons)
+    selectField[T](selector, values.map(value => SelectableOption(value, valueSerializer(value))), asRadioButtons)
   }
   def selectField[T](selector: String, values: List[T], default: Box[T])(implicit valueSerializer: (T)=>String) = {
-    SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil, false)
+    selectField[T](selector, values.map(value => SelectableOption(value, valueSerializer(value))), default, false)
   }
   def selectField[T](selector: String, values: List[T], default: Box[T], asRadioButtons: Boolean)(implicit valueSerializer: (T)=>String) = {
-    SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil, asRadioButtons)
+    selectField[T](selector, values.map(value => SelectableOption(value, valueSerializer(value))), default, asRadioButtons)
   }
 
   // Multi select fields.
