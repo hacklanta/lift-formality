@@ -77,8 +77,14 @@ object Formality extends FieldValueHelpers {
   def multiSelectField[T](selector: String, values: List[(T, String)])(implicit dummy: DummyImplicit) = {
     multiSelectField[T](selector, values.map(value => SelectableOption(value._1, value._2)))
   }
+  def multiSelectField[T](selector: String, values: List[(T, String)], asCheckboxes: Boolean)(implicit dummy: DummyImplicit) = {
+    multiSelectField[T](selector, values.map(value => SelectableOption(value._1, value._2)), asCheckboxes)
+  }
   def multiSelectField[T](selector: String, values: List[(T, String)], defaults: List[T])(implicit dummy: DummyImplicit) = {
     multiSelectField[T](selector, values.map(value => SelectableOption(value._1, value._2)), defaults)
+  }
+  def multiSelectField[T](selector: String, values: List[(T, String)], defaults: List[T], asCheckboxes: Boolean)(implicit dummy: DummyImplicit) = {
+    multiSelectField[T](selector, values.map(value => SelectableOption(value._1, value._2)), defaults, asCheckboxes)
   }
   def multiSelectField[T](selector: String, values: List[T])(implicit valueSerializer: (T)=>String) = {
     multiSelectField[T](selector, values.map(value => SelectableOption(value, valueSerializer(value))))
