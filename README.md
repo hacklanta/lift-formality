@@ -211,7 +211,7 @@ do this, you can add a failure handler to the form:
     }
 ```
 
-Note that the basic error message when validations fail simply says
+Note that the basic `Failure` message when validations fail simply says
 "<field> failed validations." However, in such cases, the failure is
-a ParamFailure whose parameter is a list of Strings representing the
+a `ParamFailure` whose parameter is a list of `String`s representing the
 validation errors for that field.
