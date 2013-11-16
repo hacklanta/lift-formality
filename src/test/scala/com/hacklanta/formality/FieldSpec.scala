@@ -504,6 +504,116 @@ class FieldSpec extends Specification {
       )
     }
   }
+  "Checkbox multi select object fields with SelectableOptions" should {
+    val objects = List(
+      SHtml.SelectableOption(new Exception("ohai"), "ohai"),
+      SHtml.SelectableOption(new Exception("obai"), "obai"),
+      SHtml.SelectableOption(new Exception("slabai"), "slabai")
+    )
+
+    val templateElement =
+      <ul class="boomdayada boomdayadan" data-test-attribute="bam">
+        <li>
+          <label>
+            Here's a test!
+            <input type="checkbox" />
+          </label>
+        </li>
+      </ul>
+
+    "only bind to checkboxes and labels in the markup" in new SContext {
+      val formField = multiSelectField[Exception]("li", objects, asCheckboxes = true)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must not have \("select")
+
+      (resultingMarkup \\ "label").zip(objects).foreach {
+        case (label, option) =>
+          label.text must_== option.label
+      }
+
+      val inputs = resultingMarkup \\ "input"
+
+      // They should all have the same name.
+      (Set[String]() ++ inputs.map(_ \ "@name").collect { case Group(Seq(Text(name))) => name }).size must_== 1
+      // They should all have different values.
+      (Set[String]() ++ inputs.map(_ \ "@value").collect { case Group(Seq(Text(value))) => value }).size must_== 3
+    }
+    "carry any SelectableOption attributes into the resulting checkboxes" in new SContext {
+      val objects = List(
+        SHtml.SelectableOption(new Exception("ohai"), "ohai", ("test" -> "bam")),
+        SHtml.SelectableOption(new Exception("obai"), "obai", ("other-test" -> "bam")),
+        SHtml.SelectableOption(new Exception("slabai"), "slabai", ("still-other-test" -> "bam"))
+      )
+
+      val formField = multiSelectField[Exception]("li", objects, asCheckboxes = true)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \\(
+        <input type="checkbox" />,
+        "test" -> "bam"
+      )
+      resultingMarkup must \\(
+        <input type="checkbox" />,
+        "other-test" -> "bam"
+      )
+      resultingMarkup must \\(
+        <input type="checkbox" />,
+        "still-other-test" -> "bam"
+      )
+    }
+    "set the associated label's for attribute when an option has the id attribute set" in new SContext {
+      val objects = List(
+        SHtml.SelectableOption(new Exception("ohai"), "ohai", ("id" -> "bam")),
+        SHtml.SelectableOption(new Exception("obai"), "obai", ("other-test" -> "bam")),
+        SHtml.SelectableOption(new Exception("slabai"), "slabai", ("id" -> "boom"))
+      )
+
+      val formField = multiSelectField[Exception]("li", objects, asCheckboxes = true)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \\(
+        "label",
+        "for" -> "bam"
+      ) \> "ohai"
+      resultingMarkup must \\(
+        "label",
+        "for" -> "boom"
+      ) \> "slabai"
+    }
+    "mark as selected the default objects" in new SContext {
+      val defaults = List(new Exception("ohai"), new Exception("slabai"))
+      val objects = List(
+        SHtml.SelectableOption(defaults(0), "ohai"),
+        SHtml.SelectableOption(new Exception("obai"), "obai"),
+        SHtml.SelectableOption(defaults(1), "slabai")
+      )
+
+      val formField = multiSelectField[Exception]("li", objects, defaults, asCheckboxes = true)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      val selectedLabels =
+        (resultingMarkup \\ "label") collect {
+          case label: Elem if label.label == "label" && (label.text == "ohai" || label.text == "slabai") =>
+            label
+        }
+
+      selectedLabels.length must_== 2
+
+      selectedLabels(0) must \(
+        <input type="checkboxes" />,
+        "selected" -> "selected"
+      )
+      selectedLabels(1) must \(
+        <input type="checkboxes" />,
+        "selected" -> "selected"
+      )
+    }
+  }
   "Multi select object fields with tuples" should {
     val objects = List(
       (new Exception("ohai"), "ohai"),

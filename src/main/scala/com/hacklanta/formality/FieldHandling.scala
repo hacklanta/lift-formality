@@ -507,7 +507,53 @@ case class MultiSelectFieldHolder[
   }
 
   override val binder: CssSel =
+    if (asCheckboxes)
+      checkboxBinder
+    else
       selectBinder
+
+  def checkboxBinder = {
+    val functionId = generateFunctionIdAndHandler
+
+    val withValidations = validations.foldLeft("nothing" #> PassThru)(_ & _.binder(selector))
+    val validationsAndEvents = eventHandlers.foldLeft(withValidations)(_ & _.binder(selector, (s:String)=>Full(optionProcessor(List(s)))))
+
+    selector #> noncedOptions.map { option =>
+      val checkboxBinder =
+        "type=checkbox [name]" #> functionId &
+        "type=checkbox [value]" #> option.value &
+        "type=checkbox [selected]" #> Some("selected").filter(_ => defaultNonces.contains(option.value)) &
+        "type=checkbox" #> validationsAndEvents
+
+      val (idAttribute, checkboxBinderWithAttributes) =
+        option.attrs.foldLeft((None: Option[String], checkboxBinder)) { (binderSoFar, attribute) =>
+          attribute match {
+            case BasicElemAttr(name, value) =>
+              val updatedBinder =
+                binderSoFar._2 &
+                ("type=checkbox [" + name + "]") #> value
+
+              if (name == "id")
+                (Some(value), updatedBinder)
+              else
+                (binderSoFar._1, updatedBinder)
+            case _ =>
+              binderSoFar
+          }
+        }
+
+      "label" #> { ns: NodeSeq => ns match {
+        case label: Elem if label.label == "label" =>
+          val nonTextChildren = label.child.filterNot(_.isInstanceOf[Text])
+
+          val updatedLabel =
+            idAttribute.foldLeft(label.copy(child = Text(option.label) ++ nonTextChildren))(_ % ("for", _))
+
+          checkboxBinderWithAttributes apply updatedLabel
+      } } &
+      checkboxBinderWithAttributes
+    }
+  }
 
   // We're replacing the whole select element, which means that we need to
   // apply the validation/binder conversions to the resulting element directly.
