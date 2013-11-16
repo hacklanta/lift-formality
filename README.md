@@ -5,11 +5,12 @@ form handling for Lift. Form handling without the pain, if you will.
 
 The goal of creating this library was to eliminate as much repetition as
 possible while wielding the full power of Lift's stateful form mechanism
-and its CSS selector transforms.
+and its CSS selector transforms, as well as embracing Lift's own
+error-reporting mechanisms.
 
 ## Status
 
-Formality is still in an early form. While there are tests ensuring
+Formality is still in an early state. While there are tests ensuring
 everything works, use in production is likely to uncover some
 undiscovered bugs. Those bugs will be crushed as quickly as possible
 once reported on Github.
