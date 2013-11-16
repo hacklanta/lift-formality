@@ -438,6 +438,72 @@ class FieldSpec extends Specification {
     }
   }
 
+  "Multi select object fields with SelectableOptions" should {
+    val objects = List(
+      SHtml.SelectableOption(new Exception("ohai"), "ohai"),
+      SHtml.SelectableOption(new Exception("obai"), "obai"),
+      SHtml.SelectableOption(new Exception("slabai"), "slabai")
+    )
+
+    "replace the element wholesale with a select element" in new SContext {
+      val formField = multiSelectField[Exception](".boomdayada", objects)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \(
+        "select",
+        "multiple" -> "multiple",
+        "class" -> "boomdayada boomdayadan",
+        "data-test-attribute" -> "bam",
+        "name" -> ".*"
+      )
+    }
+    "carry any SelectableOption attributes into the resulting options" in new SContext {
+      val objects = List(
+        SHtml.SelectableOption(new Exception("ohai"), "ohai", ("test" -> "bam")),
+        SHtml.SelectableOption(new Exception("obai"), "obai", ("other-test" -> "bam")),
+        SHtml.SelectableOption(new Exception("slabai"), "slabai", ("still-other-test" -> "bam"))
+      )
+
+      val formField = multiSelectField[Exception](".boomdayada", objects)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \\(
+        <option>ohai</option>,
+        "test" -> "bam"
+      )
+      resultingMarkup must \\(
+        <option>obai</option>,
+        "other-test" -> "bam"
+      )
+      resultingMarkup must \\(
+        <option>slabai</option>,
+        "still-other-test" -> "bam"
+      )
+    }
+    "mark as selected the default objects" in new SContext {
+      val defaults = List(new Exception("ohai"), new Exception("slabai"))
+      val objects = List(
+        SHtml.SelectableOption(defaults(0), "ohai"),
+        SHtml.SelectableOption(new Exception("obai"), "obai"),
+        SHtml.SelectableOption(defaults(1), "slabai")
+      )
+
+      val formField = multiSelectField[Exception](".boomdayada", objects, defaults)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \\(
+        <option>ohai</option>,
+        "selected" -> "selected"
+      )
+      resultingMarkup must \\(
+        <option>slabai</option>,
+        "selected" -> "selected"
+      )
+    }
+  }
   "Checkbox fields with Boolean values" should {
     "replace the element with a checkbox-hidden input pair" in new SContext {
       val formField = checkboxField(".boomdayada", false)

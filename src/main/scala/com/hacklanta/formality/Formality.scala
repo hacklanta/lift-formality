@@ -61,6 +61,14 @@ object Formality extends FieldValueHelpers {
     SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil, asRadioButtons)
   }
 
+  // Multi select fields.
+  def multiSelectField[T](selector: String, values: List[SelectableOption[T]]) = {
+    MultiSelectFieldHolder[T,T,T](selector, Nil, values, Nil, Nil, false)
+  }
+  def multiSelectField[T](selector: String, values: List[SelectableOption[T]], defaults: List[T]) = {
+    MultiSelectFieldHolder[T,T,T](selector, defaults, values, Nil, Nil, false)
+  }
+
   def checkboxField(selector: String, default: Boolean = false) = {
     CheckboxFieldHolder(selector, default, Nil, Nil)
   }

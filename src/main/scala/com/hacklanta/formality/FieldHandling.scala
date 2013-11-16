@@ -425,6 +425,154 @@ case class SelectFieldHolder[
     functionId
   }
 }
+
+/**
+ * This case class creates a field holder for a multi select field that gets a
+ * list of `Strings` from the client. If `asCheckboxes` is `true`, the
+ * binder created for this select field is designed to bind to checkboxes
+ * and their labels instead of producing a select field.
+ *
+ * When dealing with `select` elements (i.e., `asCheckboxes` is `false`),
+ * the whole element specified by `selector` will be replaced by a new `select`
+ * element.
+ *
+ * When `asCheckboxes` is `true`, the element specified by `selector` will be
+ * repeated once for each of the passed `options`. The option label will be
+ * used to set the text of the `label`. If the checkbox is nested in the
+ * `label`, it will be left at the end of the `label`. If a given
+ * `SelectableOption` specifies an `id` attribute, in addition to that
+ * attribute being set on the checkbox, the `for` attribute of the `label`
+ * element (if present) will be set to the same value.
+ */
+case class MultiSelectFieldHolder[
+  FieldValueType,
+  ValidationType >: FieldValueType,
+  EventHandlerType >: FieldValueType
+](
+  selector: String,
+  initialValues: List[FieldValueType],
+  options: List[SelectableOption[FieldValueType]],
+  validations: List[Validation[List[ValidationType]]],
+  eventHandlers: List[EventHandler[List[EventHandlerType]]],
+  asCheckboxes: Boolean
+) extends BaseFieldHolder[String, List[FieldValueType], List[ValidationType], List[EventHandlerType]](
+            selector, Full(initialValues), validations, eventHandlers
+          )(
+            eventHandlerValueConverter = { eventHandlingValue: String => Empty /* we don't get file values for event handlers */ }
+          ) {
+  val (noncedOptions, defaultNonces, optionProcessor) = {
+    final case class SelectableOptionWithNonce[+T](value: T, nonce: String, label: String, attrs: ElemAttr*)
+
+    val secure = options.map { selectableOption =>
+      SelectableOptionWithNonce(selectableOption.value, randomString(20), selectableOption.label, selectableOption.attrs: _*)
+    }
+
+    val defaultNonces = secure.collect {
+      case option if initialValues.contains(option.value) =>
+        option.nonce
+    }
+
+    val nonces = secure.map { selectableOptionWithNonce =>
+      SelectableOption(selectableOptionWithNonce.nonce, selectableOptionWithNonce.label, selectableOptionWithNonce.attrs: _*)
+    }
+
+    def process(incomingNonces: List[String]): List[FieldValueType] = {
+      secure.collect {
+        case SelectableOptionWithNonce(value, nonce, _, _) if incomingNonces.contains(nonce) =>
+          value
+      }
+    }
+
+    (nonces, defaultNonces, process _)
+  }
+
+  // FIXME hack warning. Because BaseFieldHolder currently works with
+  // String instead of List[String] in its handler, it's not appropriate
+  // for this. We stub this out and deal with the proper List[String] in
+  // a customized way. We'll want to fix BaseFieldHolder to accommodate
+  // both String and List[String] instead, with a default convertListValue
+  // implementation that invokes convertValue, which is optional for
+  // subclasses, with the head of the list or something.
+  protected def convertValue(incomingValue: String) = {
+    Empty
+  }
+  // We don't actually use this directly; instead, we set up the default value above.
+  protected def serializeValue(value: List[FieldValueType]) = ""
+
+  def validatingWith(validation: Validation[List[ValidationType]]) = {
+    this.copy(validations = validation :: validations)
+  }
+  def handlingEvent(eventHandler: EventHandler[List[EventHandlerType]]) = {
+    this.copy(eventHandlers = eventHandler :: eventHandlers)
+  }
+
+  override val binder: CssSel =
+      selectBinder
+
+  // We're replacing the whole select element, which means that we need to
+  // apply the validation/binder conversions to the resulting element directly.
+  def selectBinder = {
+    def selected(in: Boolean) = {
+      import  scala.xml._
+
+      if (in)
+        new UnprefixedAttribute("selected", "selected", Null)
+      else
+        Null
+    }
+
+    println(defaultNonces)
+    println(noncedOptions)
+    val functionId = generateFunctionIdAndHandler
+    val select =
+      <select name={functionId} multiple="multiple">{
+        noncedOptions.map { option =>
+          option.attrs.foldLeft(<option value={option.value}>{option.label}</option>)(_ % _) %
+            selected(defaultNonces.contains(option.value))
+        }
+      }</select>
+
+    val withValidations = validations.foldLeft("nothing" #> PassThru)(_ & _.binder(selector))
+    val fullBinder = eventHandlers.foldLeft(withValidations)(_ & _.binder(selector, (s: String)=>Full(optionProcessor(List(s)))))
+    
+    selector #> fullBinder(select)
+  }
+
+  private var convertedValues: List[FieldValueType] = Nil
+  protected def generateFunctionIdAndHandler: String = {
+    // Awkward super-dirty, but we need to reference the function id in
+    // the handler, and we only get the function id after mapping the
+    // handler, so we have to go this route. As long as you don't run
+    // the handler before the fmapFunc runs, everything is peachy.
+    //
+    // WARNING: DON'T RUN THE HANDLER BEFORE THE FMAPFUNC RUNS.
+    //
+    // Kword? ;)
+    var functionId: String = null
+
+    def handler(incomingValues: List[String]): Unit = {
+      optionProcessor(incomingValues) match {
+        case convertedValues =>
+          val validationErrors = validations.reverse.flatMap(_(convertedValues))
+
+          validationErrors.foreach { message =>
+            S.error(functionId, message)
+          }
+
+          if (validationErrors.isEmpty)
+            fieldValue(Full(convertedValues))
+          else
+            fieldValue(Failure(convertedValues.mkString(", ") + " failed validations.") ~> validationErrors)
+      }
+    }
+
+    functionId = S.fmapFunc(handler _)(funcName => funcName)
+
+    functionId
+  }
+}
+
+
 case class CheckboxFieldHolder(
   selector: String,
   initialValue: Boolean,
