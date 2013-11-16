@@ -633,7 +633,7 @@ class FieldSpec extends Specification {
         "name" -> ".*"
       )
     }
-    "mark as selected the default object" in new SContext {
+    "mark as selected the default objects" in new SContext {
       val defaults = List(new Exception("ohai"), new Exception("slabai"))
       val objects = List(
         (defaults(0), "ohai"),
@@ -674,7 +674,7 @@ class FieldSpec extends Specification {
         "name" -> ".*"
       )
     }
-    "mark as selected the default object" in new SContext {
+    "mark as selected the default objects" in new SContext {
       val formField = multiSelectField[String](".boomdayada", objects, List("ohai", "slabai"))
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
