@@ -755,6 +755,66 @@ class FieldSpec extends Specification {
       )
     }
   }
+  "Checkbox multi select object fields with just an object" should {
+    val objects = List(
+      "ohai",
+      "obai",
+      "slabai"
+    )
+
+    val templateElement =
+      <ul class="boomdayada boomdayadan" data-test-attribute="bam">
+        <li>
+          <label>
+            Here's a test!
+            <input type="checkbox" />
+          </label>
+        </li>
+      </ul>
+
+    "only bind to radio buttons and labels in the markup" in new SContext {
+      val formField = multiSelectField[String]("li", objects, asCheckboxes = true)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must not have \("select")
+
+      (resultingMarkup \\ "label").zip(objects).foreach {
+        case (label, value) =>
+          label.text must_== value
+      }
+
+      val inputs = resultingMarkup \\ "input"
+
+      // They should all have the same name.
+      (Set[String]() ++ inputs.map(_ \ "@name").collect { case Group(Seq(Text(name))) => name }).size must_== 1
+      // They should all have different values.
+      (Set[String]() ++ inputs.map(_ \ "@value").collect { case Group(Seq(Text(value))) => value }).size must_== 3
+    }
+    "mark as selected the default objects" in new SContext {
+      val formField = multiSelectField[String]("li", objects, List("ohai", "slabai"), asCheckboxes = true)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      val selectedLabels =
+        (resultingMarkup \\ "label") collect {
+          case label: Elem if label.label == "label" && (label.text == "ohai" || label.text == "slabai") =>
+            label
+        }
+
+      selectedLabels.length must_== 2
+
+      selectedLabels(0) must \(
+        <input type="checkboxes" />,
+        "selected" -> "selected"
+      )
+      selectedLabels(1) must \(
+        <input type="checkboxes" />,
+        "selected" -> "selected"
+      )
+    }
+  }
+
   "Checkbox fields with Boolean values" should {
     "replace the element with a checkbox-hidden input pair" in new SContext {
       val formField = checkboxField(".boomdayada", false)
