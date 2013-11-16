@@ -65,8 +65,17 @@ object Formality extends FieldValueHelpers {
   }
 
   // Multi select fields.
-  def multiSelectField[T](selector: String, values: List[SelectableOption[T]]) = {
-    MultiSelectFieldHolder[T,T,T](selector, Nil, values, Nil, Nil, false)
+  def multiSelectField[T](selector: String, values: List[SelectableOption[T]]): MultiSelectFieldHolder[T,T,T] = {
+    multiSelectField[T](selector, values, Nil)
+  }
+  def multiSelectField[T](selector: String, values: List[SelectableOption[T]], defaults: List[T]) = {
+    MultiSelectFieldHolder[T,T,T](selector, defaults, values, Nil, Nil, false)
+  }
+  def multiSelectField[T](selector: String, values: List[(T, String)])(implicit dummy: DummyImplicit) = {
+    multiSelectField[T](selector, values.map(value => SelectableOption(value._1, value._2)))
+  }
+  def multiSelectField[T](selector: String, values: List[(T, String)], defaults: List[T])(implicit dummy: DummyImplicit) = {
+    multiSelectField[T](selector, values.map(value => SelectableOption(value._1, value._2)), defaults)
   }
   def multiSelectField[T](selector: String, values: List[SelectableOption[T]], defaults: List[T]) = {
     MultiSelectFieldHolder[T,T,T](selector, defaults, values, Nil, Nil, false)

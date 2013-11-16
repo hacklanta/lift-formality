@@ -504,6 +504,47 @@ class FieldSpec extends Specification {
       )
     }
   }
+  "Multi select object fields with tuples" should {
+    val objects = List(
+      (new Exception("ohai"), "ohai"),
+      (new Exception("obai"), "obai"),
+      (new Exception("slabai"), "slabai")
+    )
+
+    "replace the  element wholesale with a select element" in new SContext {
+      val formField = multiSelectField[Exception](".boomdayada", objects)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \(
+        "select",
+        "class" -> "boomdayada boomdayadan",
+        "data-test-attribute" -> "bam",
+        "name" -> ".*"
+      )
+    }
+    "mark as selected the default object" in new SContext {
+      val defaults = List(new Exception("ohai"), new Exception("slabai"))
+      val objects = List(
+        (defaults(0), "ohai"),
+        (new Exception("obai"), "obai"),
+        (defaults(1), "slabai")
+      )
+
+      val formField = multiSelectField[Exception](".boomdayada", objects, defaults)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \\(
+        <option>ohai</option>,
+        "selected" -> "selected"
+      )
+      resultingMarkup must \\(
+        <option>slabai</option>,
+        "selected" -> "selected"
+      )
+    }
+  }
   "Checkbox fields with Boolean values" should {
     "replace the element with a checkbox-hidden input pair" in new SContext {
       val formField = checkboxField(".boomdayada", false)
