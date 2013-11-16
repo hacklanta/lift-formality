@@ -196,7 +196,7 @@ class FieldSpec extends Specification {
         SHtml.SelectableOption(new Exception("slabai"), "slabai", ("still-other-test" -> "bam"))
       )
 
-      val formField = selectField[Exception](".boomdayada", objects, asRadioButtons = true)
+      val formField = selectField[Exception]("li", objects, asRadioButtons = true)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
 
@@ -220,7 +220,7 @@ class FieldSpec extends Specification {
         SHtml.SelectableOption(new Exception("slabai"), "slabai", ("id" -> "boom"))
       )
 
-      val formField = selectField[Exception](".boomdayada", objects, asRadioButtons = true)
+      val formField = selectField[Exception]("li", objects, asRadioButtons = true)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
 
@@ -241,7 +241,7 @@ class FieldSpec extends Specification {
         SHtml.SelectableOption(new Exception("slabai"), "slabai")
       )
 
-      val formField = selectField[Exception](".boomdayada", objects, Full(default), asRadioButtons = true)
+      val formField = selectField[Exception]("li", objects, Full(default), asRadioButtons = true)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
 
@@ -338,7 +338,7 @@ class FieldSpec extends Specification {
         (new Exception("slabai"), "slabai")
       )
 
-      val formField = selectField[Exception](".boomdayada", objects, Full(default), asRadioButtons = true)
+      val formField = selectField[Exception]("li", objects, Full(default), asRadioButtons = true)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
 
