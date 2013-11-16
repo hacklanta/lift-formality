@@ -115,11 +115,11 @@ message), that error message is associated with the appropriate field by
 calling `S.error`.
 
 Validations can also be more than simple functions. The built-in
-validations, like `inRange` and `notEmpty` extend the `Validation`
+validations, like `inRange` and `notEmpty`, extend the `Validation`
 trait. These `Validation`s are still functions that work as specified
 above (i.e., they have an `apply` method that behaves as we specified
 above). However, they also have a `binder` method that returns a
-`CssSel`. These can be use to provide client-side attributes to also
+`CssSel`. These can be used to provide client-side attributes to also
 enforce the validation client-side. Client-side validations have
 the advantage of being able to run faster and without taxing the
 server. `Validation`s allow you to specify client-side validations and
