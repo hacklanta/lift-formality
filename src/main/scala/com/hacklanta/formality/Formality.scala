@@ -51,8 +51,14 @@ object Formality extends FieldValueHelpers {
   def selectField[T](selector: String, values: List[T])(implicit valueSerializer: (T)=>String) = {
     SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil, false)
   }
+  def selectField[T](selector: String, values: List[T], asRadioButtons: Boolean)(implicit valueSerializer: (T)=>String) = {
+    SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil, asRadioButtons)
+  }
   def selectField[T](selector: String, values: List[T], default: Box[T])(implicit valueSerializer: (T)=>String) = {
     SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil, false)
+  }
+  def selectField[T](selector: String, values: List[T], default: Box[T], asRadioButtons: Boolean)(implicit valueSerializer: (T)=>String) = {
+    SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil, asRadioButtons)
   }
 
   def checkboxField(selector: String, default: Boolean = false) = {
