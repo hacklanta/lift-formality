@@ -294,6 +294,66 @@ class FieldSpec extends Specification {
       )
     }
   }
+  "Radio select object fields with tuples" should {
+    val objects = List(
+      (new Exception("ohai"), "ohai"),
+      (new Exception("obai"), "obai"),
+      (new Exception("slabai"), "slabai")
+    )
+
+    val templateElement =
+      <ul class="boomdayada boomdayadan" data-test-attribute="bam">
+        <li>
+          <label>
+            Here's a test!
+            <input type="radio" />
+          </label>
+        </li>
+      </ul>
+
+    "only bind to radio buttons and labels in the markup" in new SContext {
+      val formField = selectField[Exception]("li", objects, asRadioButtons = true)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must not have \("select")
+
+      (resultingMarkup \\ "label").zip(objects).foreach {
+        case (label, (_, optionLabel)) =>
+          label.text must_== optionLabel
+      }
+
+      val inputs = resultingMarkup \\ "input"
+
+      // They should all have the same name.
+      (Set[String]() ++ inputs.map(_ \ "@name").collect { case Group(Seq(Text(name))) => name }).size must_== 1
+      // They should all have different values.
+      (Set[String]() ++ inputs.map(_ \ "@value").collect { case Group(Seq(Text(value))) => value }).size must_== 3
+    }
+    "mark as selected the default object" in new SContext {
+      val default = new Exception("ohai")
+      val objects = List(
+        (default, "ohai"),
+        (new Exception("obai"), "obai"),
+        (new Exception("slabai"), "slabai")
+      )
+
+      val formField = selectField[Exception](".boomdayada", objects, Full(default), asRadioButtons = true)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      val selectedLabel =
+        (resultingMarkup \\ "label") collect {
+          case label: Elem if label.label == "label" && label.text == "ohai" =>
+            label
+        }
+
+      selectedLabel must \(
+        <input type="radio" />,
+        "selected" -> "selected"
+      )
+    }
+  }
   "Select object fields with just an object" should {
     val objects = List(
       "ohai",

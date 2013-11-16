@@ -39,8 +39,14 @@ object Formality extends FieldValueHelpers {
   def selectField[T](selector: String, values: List[(T, String)])(implicit dummy: DummyImplicit) = {
     SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value._1, value._2)), Nil, Nil, false)
   }
+  def selectField[T](selector: String, values: List[(T, String)], asRadioButtons: Boolean)(implicit dummy: DummyImplicit) = {
+    SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value._1, value._2)), Nil, Nil, asRadioButtons)
+  }
   def selectField[T](selector: String, values: List[(T, String)], default: Box[T])(implicit dummy: DummyImplicit) = {
     SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value._1, value._2)), Nil, Nil, false)
+  }
+  def selectField[T](selector: String, values: List[(T, String)], default: Box[T], asRadioButtons: Boolean)(implicit dummy: DummyImplicit) = {
+    SelectFieldHolder[T,T,T](selector, default, values.map(value => SelectableOption(value._1, value._2)), Nil, Nil, asRadioButtons)
   }
   def selectField[T](selector: String, values: List[T])(implicit valueSerializer: (T)=>String) = {
     SelectFieldHolder[T,T,T](selector, Empty, values.map(value => SelectableOption(value, valueSerializer(value))), Nil, Nil, false)
