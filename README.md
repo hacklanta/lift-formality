@@ -76,7 +76,8 @@ run).
 Behind the scenes, Formality tries to deserialize the values. If
 the deserialization fails, `S.error` is automatically set for the
 appropriate field. You can then customize the behavior of `S.error` as
-you desire.
+you desire (see [LiftRules](http://liftweb.net/api/26/api/net/liftweb/http/LiftRules.html),
+for more, specifically the `noticesToJsCmd` property).
 
 ### Validations
 
