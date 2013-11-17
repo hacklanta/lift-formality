@@ -217,3 +217,16 @@ Note that the basic `Failure` message when validations fail simply says
 "<field> failed validations." However, in such cases, the failure is
 a `ParamFailure` whose parameter is a list of `String`s representing the
 validation errors for that field.
+
+## License
+
+`lift-formality` is provided under the terms of the MIT License. No warranties
+are made, express or implied.  See the `LICENSE` file in this same directory.
+
+# Author/Contributors
+
+`lift-formality` is copyright [Hacklanta](http://hacklanta.com), and was
+originally conceived and written by [Antonio Salazar
+Cardozo](http://github.com/Shadowfiend).
+
+You can find our writings on the [Hacklanta blog](http://hacklanta.com/blog).
