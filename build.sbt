@@ -2,7 +2,7 @@ name := "lift-formality"
 
 organization := "com.hacklanta"
 
-version := "0.1-SNAPSHOT"
+version := "0.1"
 
 scalaVersion := "2.9.2"
 
