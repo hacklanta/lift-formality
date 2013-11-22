@@ -11,6 +11,12 @@ import net.liftweb.http._
 import net.liftweb.util._
   import Helpers._
 
+// A container for a given field's value. This is a TransientRequestVar, and it
+// is salted so that each instance is mapped uniquely in the function map.
+private[formality] class FieldValueVar[FieldValueType] extends TransientRequestVar[Box[FieldValueType]](Empty) {
+  override def __nameSalt = randomString(10)
+}
+
 /**
  * A FieldHolder, at its most basic, has a value that is a Box of its
  * value type and can provide a CSS selector to transform an HTML
@@ -135,7 +141,7 @@ abstract class BaseFieldHolder[
    * The handler function should set this TransientRequestVar to the
    * appropriate value.
    */
-  protected object fieldValue extends TransientRequestVar[Box[FieldValueType]](Empty)
+  val fieldValue = new FieldValueVar[FieldValueType]()
   def value = fieldValue.is
 
   /**
