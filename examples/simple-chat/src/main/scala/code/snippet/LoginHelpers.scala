@@ -9,6 +9,7 @@ import model.User
 object loggedInUser extends SessionVar[Box[User]](Empty)
 object LoginHelpers {
   def notLoggedIn_? = loggedInUser.is.isEmpty
+  def loggedIn_? = loggedInUser.is.isDefined
 
   def logUserIn(user: User) = {
     loggedInUser(Full(user))
