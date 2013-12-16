@@ -11,4 +11,11 @@ object User {
 
     user
   }
+
+  def findUser(email: String, password: String) = {
+    users.collectFirst {
+      case user @ User(`email`, `password`) =>
+        user
+    }
+  }
 }
