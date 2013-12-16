@@ -24,12 +24,7 @@ class Boot {
 
     // Build SiteMap
     val entries = List(
-      Menu.i("Home") / "index" >>
-        If(
-          LoginHelpers.loggedIn_? _,
-          () => RedirectResponse("/login")
-        ), // the simple way to declare a menu
-
+      Chat.menu,
       Login.menu,
       Signup.menu,
 
