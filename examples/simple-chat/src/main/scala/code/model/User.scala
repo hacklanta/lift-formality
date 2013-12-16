@@ -8,5 +8,7 @@ object User {
 
   def create(user: User) = {
     users ::= user
+
+    user
   }
 }

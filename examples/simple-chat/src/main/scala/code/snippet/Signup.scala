@@ -12,13 +12,11 @@ import model.User
 object Signup {
   import net.liftweb.sitemap._
     import Loc._
-  
-  def notLoggedIn_? = true
 
   val menu =
     Menu.i("signup") / "signup" >>
       If(
-        notLoggedIn_? _,
+        LoginHelpers.notLoggedIn_? _,
         () => RedirectResponse("/")
       )
 
@@ -31,12 +29,11 @@ class Signup {
         field[String]("#email") withField
         field[String]("#password") ajaxFormalize() onSuccess {
           case email :+: password :+: HNil =>
-            User.create(User(email, password))
+            LoginHelpers.logUserIn(User.create(User(email, password)))
 
-            net.liftweb.http.js.JsCmds.Alert("Bam!")
+            S.redirectTo("/")
       }
 
-    SHtml.makeFormsAjax andThen
     "form" #> registrationForm.binder()
   }
 }
