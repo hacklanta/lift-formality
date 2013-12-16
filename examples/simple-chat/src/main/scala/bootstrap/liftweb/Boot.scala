@@ -11,6 +11,7 @@ import Loc._
 import net.liftmodules.JQueryModule
 import net.liftweb.http.js.jquery._
 
+import code.snippet.Signup
 
 /**
  * A class that's instantiated early and run.  It allows the application
@@ -24,6 +25,8 @@ class Boot {
     // Build SiteMap
     val entries = List(
       Menu.i("Home") / "index", // the simple way to declare a menu
+
+      Signup.menu,
 
       // more complex because this menu allows anything in the
       // /static path to be visible

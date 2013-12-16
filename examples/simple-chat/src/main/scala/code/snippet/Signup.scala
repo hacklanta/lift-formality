@@ -1,7 +1,7 @@
 package code
 package snippet
 
-import net.liftweb.http.SHtml
+import net.liftweb.http._
 import net.liftweb.util.Helpers._
 
 import com.hacklanta.formality.Formality
@@ -9,6 +9,21 @@ import com.hacklanta.formality.Formality
 
 import model.User
 
+object Signup {
+  import net.liftweb.sitemap._
+    import Loc._
+  
+  def notLoggedIn_? = true
+
+  val menu =
+    Menu.i("signup") / "signup" >>
+      If(
+        notLoggedIn_? _,
+        () => RedirectResponse("/")
+      )
+
+  val loc = menu.loc
+}
 class Signup {
   def form = {
     val registrationForm =
