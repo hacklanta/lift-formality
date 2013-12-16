@@ -27,7 +27,7 @@ class Signup {
     val registrationForm =
       Formality.form withField
         field[String]("#email") withField
-        field[String]("#password") ajaxFormalize() onSuccess {
+        field[String]("#password") formalize() onSuccess {
           case email :+: password :+: HNil =>
             LoginHelpers.logUserIn(User.create(User(email, password)))
 
