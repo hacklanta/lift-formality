@@ -1,7 +1,11 @@
 package code
 package snippet
 
+import scala.xml.NodeSeq
+
+import net.liftweb.common._
 import net.liftweb.http._
+  import js.JE.Call
 import net.liftweb.util.Helpers._
 
 import com.hacklanta.formality._
@@ -28,18 +32,37 @@ class Chat {
     "Chat page should not be accessible without valid login."
   }
 
+  var chatMessageTemplate: Box[NodeSeq] = Empty
+  def renderMessage(message: ChatMessage) = {
+    chatMessageTemplate.map { template =>
+      val transform =
+        ".poster *" #> message.poster &
+        ".body *" #> message.body
+        
+      transform apply template
+    } openOr {
+      NodeSeq.Empty
+    }
+  }
+
   def form = {
     val messageField = field[String]("#message") ? notEmpty
 
     val registrationForm =
       Formality.form withField messageField ajaxFormalize() onSuccess {
-        case message :+: HNil =>
-          ChatMessage.create(ChatMessage(currentUser.email, message))
+        case body :+: HNil =>
+          val message = ChatMessage.create(ChatMessage(currentUser.email, body))
 
-          js.JsCmds.Alert("Posted " + message + "!")
+          Call("insertChatMessage", renderMessage(message).toString).cmd
       }
 
     SHtml.makeFormsAjax andThen
     "form" #> registrationForm.binder()
+  }
+
+  def chatMessages(ns: NodeSeq): NodeSeq = {
+    chatMessageTemplate = Full(("li ^^" #> "ignored") apply ns)
+
+    ns
   }
 }

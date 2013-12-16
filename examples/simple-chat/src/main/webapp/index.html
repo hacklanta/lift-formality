@@ -17,7 +17,9 @@
     </header>
 
     <section id="chat">
-      Chat time!
+      <ul id="chat-messages" data-lift="Chat.chatMessages">
+        <li><span class="poster">System</span>: <span class="body">Chat time!</span></li>
+      </ul>
 
       <form data-lift="Chat.form" method="post">
         <fieldset class="row">
@@ -43,6 +45,10 @@
     <script src="/static/js/foundation.min.js"></script>
     <script>
       $(document).foundation();
+
+      window.insertChatMessage = function(newMessage) {
+        $('#chat-messages').prepend(newMessage);
+      }
     </script>
   </body>
 </html>
