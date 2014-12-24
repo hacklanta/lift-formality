@@ -4,12 +4,12 @@ organization := "com.hacklanta"
 
 version := "0.2-SNAPSHOT"
 
-scalaVersion := "2.9.2"
+scalaVersion := "2.11.4"
 
 resolvers += "Sonatype Snapshots Repository" at "http://oss.sonatype.org/content/repositories/snapshots"
 
 {
-  val liftVersion = "2.6-SNAPSHOT"
+  val liftVersion = "2.6-RC2"
   libraryDependencies ++= Seq(
     "net.liftweb" %% "lift-webkit" % liftVersion,
     "net.liftweb" %% "lift-testkit" % liftVersion % "test",
@@ -19,10 +19,10 @@ resolvers += "Sonatype Snapshots Repository" at "http://oss.sonatype.org/content
 
 libraryDependencies ++= Seq(
   "com.chuusai" %% "shapeless" % "1.2.4",
-  "org.specs2" %% "specs2" % "1.12.3" % "test"
+  "org.specs2" %% "specs2-core" % "2.4.15" % "test"
 )
 
-scalacOptions ++= Seq("-deprecation","-Xfatal-warnings")
+scalacOptions ++= Seq("-deprecation","-feature","-Xfatal-warnings")
 
 //scalacOptions in Test ++= Seq("-Yrangepos")
 

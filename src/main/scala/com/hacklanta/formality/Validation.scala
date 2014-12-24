@@ -1,6 +1,9 @@
 package com.hacklanta
 package formality
 
+// For function->Validation conversions.
+import scala.language.implicitConversions
+
 import net.liftweb.http.S
 import net.liftweb.common._
 import net.liftweb.util._
