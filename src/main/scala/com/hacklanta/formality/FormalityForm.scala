@@ -66,6 +66,38 @@ object FormalityForm {
   }
 }
 
+import scala.language.experimental.macros
+
+object FormalityFormProto {
+  import scala.reflect.macros.whitebox.Context
+
+  private def buildFieldsExpression(c: Context)(fields: Seq[c.Expr[FieldHolderBase[_]]]) = {
+    import c.universe._
+
+    fields.foldLeft(q"""${c.prefix}""") { (expression, field) =>
+      q"""${expression}.withField($field)"""
+    }
+  }
+
+  private def withFieldsHelper(c: Context)(fields: Seq[c.Expr[FieldHolderBase[_]]], formalizeCall: c.universe.TermName) = {
+    import c.universe._
+
+    // Split out into two expressions as otherwise the resulting expression gets
+    // the compiler confused on types.
+    q"""{
+      val formWithFields = ${buildFieldsExpression(c)(fields)}
+      formWithFields.${formalizeCall}()
+    }"""
+  }
+
+  def withFieldsImpl(c: Context)(fields: c.Expr[FieldHolderBase[_]]*) = {
+    withFieldsHelper(c)(fields, c.universe.TermName("formalize"))
+  }
+
+  def withAjaxFieldsImpl(c: Context)(fields: c.Expr[FieldHolderBase[_]]*) = {
+    withFieldsHelper(c)(fields, c.universe.TermName("ajaxFormalize"))
+  }
+}
 /**
  * FormalityFormProto is the starting point for creating a formality
  * form. It uses a lot of type magic, so that is going to be detailed
@@ -113,6 +145,9 @@ case class FormalityFormProto[
       FieldValueType :: FieldValueList
     ](fields = field :: fields)
   }
+
+  def withFields(fields: FieldHolderBase[_]*): FormalityForm[_, _, _, _] = macro FormalityFormProto.withFieldsImpl
+  def withAjaxFields(fields: FieldHolderBase[_]*): FormalityForm[_, _, _, _] = macro FormalityFormProto.withAjaxFieldsImpl
 
   def formalize[
     ReverseFieldList <: HList,
@@ -198,8 +233,8 @@ abstract class FormalityForm[
   def fields: FieldList
   def submitBind(
     implicit definedCheckFolder: LeftFolderAux[FieldList, Boolean, checkFieldsDefined.type, Boolean],
-                              boxFolder: RightFolderAux[FieldList, HNil, extractFieldBox.type, FieldBoxList],
-                              valueFolder: RightFolderAux[FieldList, HNil, extractFieldValue.type, FieldValueList]
+             boxFolder: RightFolderAux[FieldList, HNil, extractFieldBox.type, FieldBoxList],
+             valueFolder: RightFolderAux[FieldList, HNil, extractFieldValue.type, FieldValueList]
   ): CssSel
 
   def binder()(
@@ -230,7 +265,9 @@ case class StandardFormalityForm[
     implicit definedCheckFolder: LeftFolderAux[FieldList, Boolean, checkFieldsDefined.type, Boolean],
                               boxFolder: RightFolderAux[FieldList, HNil, extractFieldBox.type, FieldBoxList],
                               valueFolder: RightFolderAux[FieldList, HNil, extractFieldValue.type, FieldValueList]
-  ) = "type=submit" #> SHtml.onSubmit((s: String) => handleSubmit())
+  ) = {
+    "type=submit" #> SHtml.onSubmit((s: String) => handleSubmit())
+  }
 
   def onSubmission(handler: (FieldBoxList)=>Unit) = {
     copy[FieldList, FieldBoxList, FieldValueList](submissionHandlers = handler :: submissionHandlers)
@@ -278,7 +315,9 @@ case class AjaxFormalityForm[
     implicit definedCheckFolder: LeftFolderAux[FieldList, Boolean, checkFieldsDefined.type, Boolean],
                               boxFolder: RightFolderAux[FieldList, HNil, extractFieldBox.type, FieldBoxList],
                               valueFolder: RightFolderAux[FieldList, HNil, extractFieldValue.type, FieldValueList]
-  ) = "type=submit" #> SHtml.ajaxOnSubmit(() => handleSubmit())
+  ) = {
+    "type=submit" #> SHtml.ajaxOnSubmit(() => handleSubmit())
+  }
 
   def onSubmission(handler: (FieldBoxList)=>Unit) = {
     copy[FieldList, FieldBoxList, FieldValueList](submissionHandlers = handler :: submissionHandlers)

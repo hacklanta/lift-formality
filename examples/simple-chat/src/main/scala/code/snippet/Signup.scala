@@ -29,12 +29,11 @@ class Signup {
     val passwordField = field[String]("#password") ? notEmpty
 
     val registrationForm =
-      Formality.form withField
-        emailField withField passwordField formalize() onSuccess {
-          case email :+: password :+: HNil =>
-            LoginHelpers.logUserIn(User.create(User(email, password)))
+      Formality.form.withFields(emailField, passwordField) onSuccess {
+        case email :+: password :+: HNil =>
+          LoginHelpers.logUserIn(User.create(User(email, password)))
 
-            S.redirectTo("/")
+          S.redirectTo("/")
       }
 
     "form" #> registrationForm.binder()

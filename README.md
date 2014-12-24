@@ -39,11 +39,12 @@ A basic form snippet would look like this:
   import com.hacklanta.formality.Formality._
 
   val registrationForm =
-    form withField
-      field[String](".name") withField
-      field[String](".phone-number") withField
-      field[Int](".age") withField
-      checkboxField("#terms-and-conditions") formalize() onSuccess {
+    form withFields(
+      field[String](".name"),
+      field[String](".phone-number"),
+      field[Int](".age"),
+      checkboxField("#terms-and-conditions")
+    ) onSuccess {
         case name :: phoneNumber :: age :: termsAndConditions :: HNil =>
           // Assuming a case class User(name: String, age: Int, phoneNumber: String, termsAndConditions: Boolean).
           User(name, age, phoneNumber, termsAndConditions).save
@@ -77,7 +78,7 @@ run).
 Behind the scenes, Formality tries to deserialize the values. If
 the deserialization fails, `S.error` is automatically set for the
 appropriate field. You can then customize the behavior of `S.error` as
-you desire (see [LiftRules](http://liftweb.net/api/26/api/net/liftweb/http/LiftRules.html),
+you desire (see [LiftRules](http://liftweb.net/api/26/api/net/liftweb/http/LiftRules.html)
 for more, specifically the `noticesToJsCmd` property).
 
 ### Validations
@@ -93,16 +94,21 @@ Formality can also do validation:
   val ageField = field[Int](".age") ? inRange(15, 120)
   val termsField =
     checkboxField("#terms-and-conditions") ? { incoming: Boolean =>
-      if (incoming)
+      if (incoming) {
         Empty
-      else
+      } else {
         Full("You must agree to the terms and conditions.")
+      }
     }
 
   val registrationForm =
-    form withField nameField withField phoneNumberField withField
-      ageField withField termsField formalize() onSuccess {
-        // same as above
+    form withFields(
+      nameField,
+      phoneNumberField,
+      ageField,
+      termsField
+    ) onSuccess {
+      // same as above
     }
 ```
 
@@ -151,20 +157,26 @@ Formality can also add server-side event handlers to form inputs:
     field[Int](".age") ?
       inRange(15, 120) ->
       on("change", { incoming: Int =>
-        if (incoming < 15)
+        if (incoming < 15) {
           Run("$('#terms-and-conditions').attr('disabled', 'disabled')")
+        }
       })
   val termsField =
     checkboxField("#terms-and-conditions") ? { incoming: Boolean =>
-      if (incoming)
+      if (incoming) {
         Empty
-      else
+      } else {
         Full("You must agree to the terms and conditions.")
+      }
     }
 
   val registrationForm =
-    form withField nameField withField phoneNumberField withField
-      ageField withField termsField formalize() onSuccess {
+    form withFields(
+      nameField,
+      phoneNumberField,
+      ageField,
+      termsField
+    ) onSuccess {
         // same as above
     }
 ```
@@ -198,8 +210,12 @@ do this, you can add a failure handler to the form:
 
 ```scala
   val registrationForm =
-    form withField nameField withField phoneNumberField withField
-      ageField withField termsField formalize() onSuccess {
+    form withFields(
+      nameField,
+      phoneNumberField,
+      ageField,
+      termsField
+    ) onSuccess {
         // same as above
     } onFailure {
       case nameBox :: phoneNumberBox :: ageBox :: termsBox :: HNil =>
