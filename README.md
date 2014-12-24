@@ -21,7 +21,7 @@ You can include Formality directly as a dependency in your `build.sbt`:
 
 ```
 libraryDependencies ++= Seq(
-  "com.hacklanta" %% "lift-formality" % "0.1-SNAPSHOT"
+  "com.hacklanta" %% "lift-formality" % "0.2-SNAPSHOT"
 )
 ```
 
