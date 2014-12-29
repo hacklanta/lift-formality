@@ -44,10 +44,9 @@ A basic form snippet would look like this:
       field[String](".phone-number"),
       field[Int](".age"),
       checkboxField("#terms-and-conditions")
-    ) onSuccess {
-        case name :: phoneNumber :: age :: termsAndConditions :: HNil =>
-          // Assuming a case class User(name: String, age: Int, phoneNumber: String, termsAndConditions: Boolean).
-          User(name, age, phoneNumber, termsAndConditions).save
+    ) onSuccess { (name, phoneNumber, age, termsAndConditions) =>
+      // Assuming a case class User(name: String, age: Int, phoneNumber: String, termsAndConditions: Boolean).
+      User(name, age, phoneNumber, termsAndConditions).save
     }
   
   "form" #> registrationForm.binder()
@@ -217,15 +216,14 @@ do this, you can add a failure handler to the form:
       termsField
     ) onSuccess {
         // same as above
-    } onFailure {
-      case nameBox :: phoneNumberBox :: ageBox :: termsBox :: HNil =>
-        List(nameBox, phoneNumberBox, ageBox, termsBox).foreach {
-          case ParamFailure(message, _, _, validationErrors) =>
-            logger.error("Got " + message + " with validation errors: " + validationErrors)
-          case Failure(message, _, _) =>
-            logger.error("Got " + message)
-          case _ =>
-        }
+    } onFailure { (nameBox, phoneNumberBox, ageBox, termsBox) =>
+      List(nameBox, phoneNumberBox, ageBox, termsBox).foreach {
+        case ParamFailure(message, _, _, validationErrors) =>
+          logger.error("Got " + message + " with validation errors: " + validationErrors)
+        case Failure(message, _, _) =>
+          logger.error("Got " + message)
+        case _ =>
+      }
     }
 ```
 
