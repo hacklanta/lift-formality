@@ -49,11 +49,10 @@ class Chat {
     val messageField = field[String]("#message") ? notEmpty
 
     val registrationForm =
-      Formality.form withField messageField ajaxFormalize() onSuccess {
-        case body :+: HNil =>
-          val message = ChatMessage.create(ChatMessage(currentUser.email, body))
+      Formality.form withAjaxFields(messageField) onSuccess { body =>
+        val message = ChatMessage.create(ChatMessage(currentUser.email, body))
 
-          Call("insertChatMessage", renderMessage(message).toString).cmd
+        Call("insertChatMessage", renderMessage(message).toString).cmd
       }
 
     SHtml.makeFormsAjax andThen

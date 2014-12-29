@@ -25,16 +25,16 @@ object Login {
 class Login {
   def form = {
     val loginForm =
-      Formality.form withField
-        field[String]("#email") withField
-        field[String]("#password") formalize() onSuccess {
-          case email :+: password :+: HNil =>
-            User.findUser(email, password).foreach { user =>
-              LoginHelpers.logUserIn(user)
-            }
-
-            S.redirectTo("/")
+      Formality.form withFields(
+        field[String]("#email"),
+        field[String]("#password")
+      ) onSuccess { (email, password) =>
+        User.findUser(email, password).foreach { user =>
+          LoginHelpers.logUserIn(user)
         }
+
+        S.redirectTo("/")
+      }
 
       "form" #> loginForm.binder()
   }

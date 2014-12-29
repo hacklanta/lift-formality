@@ -1,6 +1,7 @@
 package code
 package snippet
 
+import net.liftweb.common._
 import net.liftweb.http._
 import net.liftweb.util.Helpers._
 
@@ -29,11 +30,10 @@ class Signup {
     val passwordField = field[String]("#password") ? notEmpty
 
     val registrationForm =
-      Formality.form.withFields(emailField, passwordField) onSuccess {
-        case email :+: password :+: HNil =>
-          LoginHelpers.logUserIn(User.create(User(email, password)))
+      Formality.form.withFields(emailField, passwordField) onSubmission { (email, password) =>
+        LoginHelpers.logUserIn(User.create(User(email.openOrThrowException(""), password.openOrThrowException(""))))
 
-          S.redirectTo("/")
+        S.redirectTo("/")
       }
 
     "form" #> registrationForm.binder()
