@@ -36,6 +36,6 @@ class Login {
         S.redirectTo("/")
       }
 
-      "form" #> loginForm.binder()
+      "form" #> loginForm.binder
   }
 }

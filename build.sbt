@@ -2,7 +2,7 @@ name := "lift-formality"
 
 organization := "com.hacklanta"
 
-version := "0.2-SNAPSHOT"
+version := "0.3.0-SNAPSHOT"
 
 scalaVersion := "2.11.4"
 
@@ -18,7 +18,6 @@ resolvers += "Sonatype Snapshots Repository" at "http://oss.sonatype.org/content
 }
 
 libraryDependencies ++= Seq(
-  "com.chuusai" %% "shapeless" % "1.2.4",
   "org.specs2" %% "specs2-core" % "2.4.15" % "test"
 )
 

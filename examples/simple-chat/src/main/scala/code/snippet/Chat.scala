@@ -56,7 +56,7 @@ class Chat {
       }
 
     SHtml.makeFormsAjax andThen
-    "form" #> registrationForm.binder()
+    "form" #> registrationForm.binder
   }
 
   def chatMessages(ns: NodeSeq): NodeSeq = {

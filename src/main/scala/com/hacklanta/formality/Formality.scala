@@ -1,14 +1,12 @@
 package com.hacklanta
 package formality
 
+import net.liftweb.common._
 import net.liftweb.http.FileParamHolder
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.SHtml.SelectableOption
-import net.liftweb.common._
 import net.liftweb.util._
   import Helpers._
-
-import shapeless._
 
 object Formality extends FieldValueHelpers {
   def field[T](selector: String, initialValue: T)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): SimpleFieldHolder[T, T, T] = {
@@ -27,6 +25,7 @@ object Formality extends FieldValueHelpers {
   }
 
   // Basic  select fields.
+  // TODO singleChoiceField, multiChoiceField?
   // NOTE: Order matters. In particular, reordering the declarations of the
   // List[SelectableOption] functions will probably break the compile. Why?
   // Your guess is as good as mine.
@@ -105,8 +104,9 @@ object Formality extends FieldValueHelpers {
 
   def on[T](eventName: String, handler: (T)=>JsCmd) = EventHandler[T](eventName, handler)
 
-  def form = FormalityFormProto[HNil, HNil, HNil](HNil)
+  def form = FormalityFormProto()
 
-  val :+: = shapeless.::
-  val HNil = shapeless.HNil
+  val :: = HListies.:+:
+  val :+: = HListies.:+:
+  val HNil = HListies.HNil
 }

@@ -3,78 +3,27 @@ package formality
 
 import scala.language.experimental.macros
 
-import net.liftweb.common.Box
+import net.liftweb.common.{Box, Failure}
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util._
   import Helpers._
 
-import shapeless._
-  import HList._
-  import UnaryTCConstraint._
-
-object FormalityForm {
-  // shapeless helper to map the HList of FieldHolder[T]s into an HList
-  // of their boxed values. Remember the FieldHolder[T]s do not
-  // necessarily share the same type T. This is used to take an HList of
-  // FieldHolder[T]s and map it to an HList of Box[T]s with
-  // heterogeneous Ts.
-  object mapFieldBox extends Poly1 {
-    implicit def caseHListField[FieldValueType] =
-      at[FieldHolderBase[FieldValueType]] { field =>
-        field.value
-      }
-  }
-  // shapeless helper to map the HList of FieldHolder[T]s into an HList
-  // of their extracted values. Remember the FieldHolder[T]s do not
-  // necessarily share the same type T. This is used to take an HList of
-  // FieldHolder[T]s and map it to an HList of Ts with heterogeneous Ts.
-  //
-  // NOTE: This is not meant to actually run! It uses
-  // openOrThrowException, but is currently used specifically to help the
-  // type inferencer infer the reversed type of the HList used in the forms.
-  // More on that in the FormalityFormProto documentation. Don't use
-  // this unless you are ready for exceptions.
-  object mapFieldValue_! extends Poly1 {
-    implicit def caseHListField[FieldValueType] =
-      at[FieldHolderBase[FieldValueType]] { field =>
-        field.value openOrThrowException "This should seriously not be running. Hide somewhere safe and call 911."
-      }
-  }
-  object combineFieldBinders extends Poly2 {
-    implicit def caseBoolField[FieldValueType] =
-      at[CssSel, FieldHolderBase[FieldValueType]] { (soFar, field) =>
-        soFar & field.binder
-      }
-  }
-  object checkFieldsDefined extends Poly2 {
-    implicit def caseBoolField[FieldValueType] =
-      at[Boolean, FieldHolderBase[FieldValueType]] { (soFar, field) =>
-        soFar && field.value.isDefined
-      }
-  }
-  object extractFieldValue extends Poly2 {
-    implicit def caseHListField[FieldValueType, RemainingFieldList <: HList] =
-      at[FieldHolderBase[FieldValueType], RemainingFieldList] { (field, list) =>
-        field.value.openOrThrowException("This call was not wrapped in trick-nasty checkFieldsDefined goodness.") :: list
-      }
-  }
-  object extractFieldBox extends Poly2 {
-    implicit def caseHListField[FieldValueType, RemainingFieldList <: HList] =
-      at[FieldHolderBase[FieldValueType], RemainingFieldList] { (field, list) =>
-        field.value :: list
-      }
-  }
-}
+import net.liftweb.common.HListies._
+import net.liftweb.common.CombinableBoxie
 
 object FormalityFormProto {
   import scala.reflect.macros.whitebox.Context
 
+  // Builds the expression for accumulating fields onto the form. Note that this
+  // expression accumulates the fields backwards; because the fields are kept in
+  // an HList, the last field added is the first field we deal with later, so
+  // the fields are actually being added in the "right order".
   private def buildFieldsExpression(c: Context)(fields: Seq[c.Expr[FieldHolderBase[_]]]) = {
     import c.universe._
 
-    fields.foldLeft(q"""${c.prefix}""") { (expression, field) =>
+    fields.reverse.foldLeft(q"""${c.prefix}""") { (expression, field) =>
       q"""${expression}.withField($field)"""
     }
   }
@@ -86,7 +35,7 @@ object FormalityFormProto {
     // the compiler confused on types.
     q"""{
       val formWithFields = ${buildFieldsExpression(c)(fields)}
-      formWithFields.reverse().${formalizeCall}
+      formWithFields.${formalizeCall}
     }"""
   }
 
@@ -97,6 +46,51 @@ object FormalityFormProto {
   def withAjaxFieldsImpl(c: Context)(fields: c.Expr[FieldHolderBase[_]]*) = {
     withFieldsHelper(c)(fields, c.universe.TermName("ajaxFormalize"))
   }
+
+  def apply() = {
+    FormalityFormBase()
+  }
+}
+case class FormalityFormBase private[formality]() {
+  /**
+   * Adds the specified field to the '''front''' of this form.
+   *
+   * This means that calling `myForm.withField(field1).withField(field2)` will
+   * give you those fields in reverse order in your submission handlers
+   * (`field2`'s value first, then `field1`'s). It's recommended that you
+   * instead use the `withFields` or `withAjaxFields` helpers, which let you add
+   * a group of fields all at once in proper order and leaves you with a form
+   * that can accept submission handlers.
+   * 
+   * @return A new `FormailtyFormProto` with the given field prepended to its
+   *         list of fields. Note that you still need to call `formalize` or
+   *         `ajaxFormalize` on the form if you want to attach submission
+   *         handlers.
+   */
+  def withField[
+    IncomingValueType,
+    FieldValueType,
+    ValidationType >: FieldValueType,
+    EventHandlerType >: FieldValueType
+  ](
+    field: BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType]
+  ) = {
+    FormalityFormProto[
+      FieldHolderBase[FieldValueType] :+: HNil,
+      Box[FieldValueType] :+: HNil,
+      FieldValueType,
+      HNil
+    ](
+      fields = field :+: HNil,
+      computeValues = () => {
+        (field.value :+: HNil, field.value: CombinableBoxie.CombinableBox[FieldValueType, HNil])
+      },
+      bindFields = field.binder
+    )
+  }
+
+  def withFields(fields: FieldHolderBase[_]*): FormalityForm[_, _, _, _, _, _] = macro FormalityFormProto.withFieldsImpl
+  def withAjaxFields(fields: FieldHolderBase[_]*): FormalityForm[_, _, _, _, _, _] = macro FormalityFormProto.withAjaxFieldsImpl
 }
 /**
  * FormalityFormProto is the starting point for creating a formality
@@ -122,25 +116,31 @@ object FormalityFormProto {
  *
  * Because of what we need to do once we convert to a FormalityForm.
  */
-case class ReversedFormalityFormProto[
-  FieldList <: HList : *->*[FieldHolderBase]#λ,
-  FieldBoxList <: HList : *->*[Box]#λ,
-  FieldValueList <: HList
-](
-  fields: FieldList
-) {
-  def formalize: StandardFormalityForm[FieldList, FieldBoxList, FieldValueList, _, _] = macro StandardFormalityForm.buildForm[FieldList, FieldBoxList, FieldValueList]
-  def ajaxFormalize: AjaxFormalityForm[FieldList, FieldBoxList, FieldValueList, _, _] = macro AjaxFormalityForm.buildForm[FieldList, FieldBoxList, FieldValueList]
-}
 case class FormalityFormProto[
-  FieldList <: HList : *->*[FieldHolderBase]#λ,
-  FieldBoxList <: HList : *->*[Box]#λ,
-  FieldValueList <: HList
-](
-  fields: FieldList
+  FieldList <: HList,
+  FieldBoxList <: HList,
+  HeadFieldValueType,
+  RestFieldValueTypes <: HList
+] private[formality] (
+  fields: FieldList,
+  computeValues: ()=>(FieldBoxList, CombinableBoxie.CombinableBox[HeadFieldValueType, RestFieldValueTypes]),
+  bindFields: CssSel
 ) {
-  import FormalityForm._
-
+  /**
+   * Adds the specified field to the '''front''' of this form.
+   *
+   * This means that calling `myForm.withField(field1).withField(field2)` will
+   * give you those fields in reverse order in your submission handlers
+   * (`field2`'s value first, then `field1`'s). It's recommended that you
+   * instead use the `withFields` or `withAjaxFields` helpers, which let you add
+   a group of fields * all at once in proper order and leaves you with a form
+   * that can accept submission handlers.
+   * 
+   * @return A new `FormailtyFormProto` with the given field prepended to its
+   *         list of fields. Note that you still need to call `formalize` or
+   *         `ajaxFormalize` on that form if you want to attach submission
+   *         handlers.
+   */
   def withField[
     IncomingValueType,
     FieldValueType,
@@ -150,76 +150,50 @@ case class FormalityFormProto[
     field: BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType]
   ) = {
     this.copy[
-      FieldHolderBase[FieldValueType] :: FieldList,
-      Box[FieldValueType] :: FieldBoxList,
-      FieldValueType :: FieldValueList
-    ](fields = field :: fields)
+      FieldHolderBase[FieldValueType] :+: FieldList,
+      Box[FieldValueType] :+: FieldBoxList,
+      FieldValueType,
+      HeadFieldValueType :+: RestFieldValueTypes
+    ](
+      fields = field :+: fields,
+      computeValues = () => {
+        val (boxes, combinedResult) = this.computeValues()
+        (field.value :+: boxes, field.value :&: combinedResult)
+      },
+      bindFields = this.bindFields & field.binder
+    )
   }
 
   def withFields(fields: FieldHolderBase[_]*): FormalityForm[_, _, _, _, _, _] = macro FormalityFormProto.withFieldsImpl
   def withAjaxFields(fields: FieldHolderBase[_]*): FormalityForm[_, _, _, _, _, _] = macro FormalityFormProto.withAjaxFieldsImpl
 
-  // First we reverse, then we formalize.
-  def reverse[
-    ReverseFieldList <: HList,
-    ReverseFieldBoxList <: HList,
-    ReverseFieldValueList <: HList,
-    FunctionType,
-    BoxedFunctionType
-  ]()(
-    implicit fieldReverser: ReverseAux[FieldList, ReverseFieldList],
-             boxMapper: MapperAux[mapFieldBox.type, FieldList, FieldBoxList],
-             fieldBoxReverser: ReverseAux[FieldBoxList, ReverseFieldBoxList],
-             valueMapper: MapperAux[mapFieldValue_!.type, FieldList, FieldValueList],
-             fieldValueReverser: ReverseAux[FieldValueList, ReverseFieldValueList],
-             reverseFieldListConstraint: UnaryTCConstraint[ReverseFieldList, FieldHolderBase],
-             reverseFieldBoxListConstraint: UnaryTCConstraint[ReverseFieldBoxList, Box]
-  ) = {
-    val reversedFields = fields.reverse
-
-    ReversedFormalityFormProto[
-      ReverseFieldList,
-      ReverseFieldBoxList,
-      ReverseFieldValueList
-    ](reversedFields)
-  }
+  def formalize: StandardFormalityForm[FieldList, FieldBoxList, HeadFieldValueType :+: RestFieldValueTypes, _, _] = macro StandardFormalityForm.buildForm[FieldList, FieldBoxList, HeadFieldValueType, RestFieldValueTypes]
+  def ajaxFormalize: AjaxFormalityForm[FieldList, FieldBoxList, HeadFieldValueType :+: RestFieldValueTypes, _, _] = macro AjaxFormalityForm.buildForm[FieldList, FieldBoxList, HeadFieldValueType, RestFieldValueTypes]
 }
 
 abstract class FormalityForm[
-  FieldList <: HList : *->*[FieldHolderBase]#λ,
-  FieldBoxList <: HList : *->*[Box]#λ,
+  FieldList <: HList,
+  FieldBoxList <: HList,
   FieldValueList <: HList,
   RequestResultType,
   FunctionType,
   BoxedFunctionType
 ] {
-  import FormalityForm._
-
   def onSubmission(handler: BoxedFunctionType): StandardFormalityForm[FieldList, FieldBoxList, FieldValueList, FunctionType, BoxedFunctionType] = macro FormalityFormHelper.onSubmissionImpl[BoxedFunctionType, FieldBoxList, RequestResultType]
   def onSubmissionHList(handler: (FieldBoxList)=>Unit): FormalityForm[FieldList,FieldBoxList,FieldValueList,RequestResultType, FunctionType, BoxedFunctionType]
 
   def onSuccess(handler: FunctionType): FormalityForm[FieldList,FieldBoxList,FieldValueList,RequestResultType, FunctionType, BoxedFunctionType] = macro FormalityFormHelper.onSuccessImpl[FunctionType, FieldValueList, RequestResultType]
   def onSuccessHList(handler: (FieldValueList)=>RequestResultType): FormalityForm[FieldList,FieldBoxList,FieldValueList,RequestResultType, FunctionType, BoxedFunctionType]
 
-  def onFailure(handler: BoxedFunctionType): StandardFormalityForm[FieldList, FieldBoxList, FieldValueList, FunctionType, BoxedFunctionType] = macro FormalityFormHelper.onFailureImpl[BoxedFunctionType, FieldBoxList, RequestResultType]
-  def onFailureHList(handler: (FieldBoxList)=>RequestResultType): FormalityForm[FieldList,FieldBoxList,FieldValueList,RequestResultType, FunctionType, BoxedFunctionType]
+  def onFailure(handler: (List[Failure])=>RequestResultType): FormalityForm[FieldList, FieldBoxList, FieldValueList, RequestResultType, FunctionType, BoxedFunctionType]
 
   def fields: FieldList
-  def submitBind(
-    implicit definedCheckFolder: LeftFolderAux[FieldList, Boolean, checkFieldsDefined.type, Boolean],
-             boxFolder: RightFolderAux[FieldList, HNil, extractFieldBox.type, FieldBoxList],
-             valueFolder: RightFolderAux[FieldList, HNil, extractFieldValue.type, FieldValueList]
-  ): CssSel
+  def bindFields: CssSel
+  def submitBind: CssSel
 
-  def binder()(
-    implicit fieldFolder: LeftFolderAux[FieldList, CssSel, combineFieldBinders.type, CssSel],
-             definedCheckFolder: LeftFolderAux[FieldList, Boolean, checkFieldsDefined.type, Boolean],
-             boxFolder: RightFolderAux[FieldList, HNil, extractFieldBox.type, FieldBoxList],
-             valueFolder: RightFolderAux[FieldList, HNil, extractFieldValue.type, FieldValueList]
-  ): CssSel = {
-    val fieldBinds = fields.foldLeft(submitBind)(combineFieldBinders)
-
-    fieldBinds
+  def binder = {
+    bindFields &
+    submitBind
   }
 }
 
@@ -233,18 +207,6 @@ object FormalityFormHelper {
       q"""
       startingForm.copy[..$formTypeParameters](
         successHandlers = handler :: startingForm.successHandlers
-      )
-      """
-    }
-  }
-
-  def onFailureImpl[T: c.WeakTypeTag, FieldList: c.WeakTypeTag, ReturnType: c.WeakTypeTag](c: Context)(handler: c.Expr[T]) = {
-    import c.universe._
-
-    buildSubmissionCopyTree[T, FieldList, ReturnType](c)(handler) { formTypeParameters =>
-      q"""
-      startingForm.copy[..$formTypeParameters](
-        failureHandlers = handler :: startingForm.failureHandlers
       )
       """
     }
@@ -349,15 +311,15 @@ object FormalityFormHelper {
           }
       }
 
-      val matcher =
-        (0 until hlistTypes.length).reverse.foldLeft(q"HNil": c.Tree) { (typeMatch, i) =>
-          pq""":+:(${TermName("thingie" + i)}, $typeMatch)"""
-        }
+      val (matcher, parameterList) =
+        (0 until hlistTypes.length)
+          .reverse
+          .foldLeft((q"HNil": c.Tree, List[Ident]())) {
+            case ((typeMatch, parameters), _) =>
+              val name = TermName(c.freshName("fieldValue$"))
 
-      val parameterList =
-        (0 until hlistTypes.length).map { (i) =>
-          q"""${TermName("thingie" + i)}"""
-        }
+              (pq""":+:($name, $typeMatch)""", q"$name" :: parameters)
+          }
 
       q"""
       val handler: Function1[${hlistType},${c.weakTypeOf[ReturnType]}] = {
@@ -371,13 +333,21 @@ object FormalityFormHelper {
   private[formality] def buildFormForTypes[
     FieldTypes <: HList : c.WeakTypeTag,
     FieldBoxTypes <: HList : c.WeakTypeTag,
-    FieldValueTypes <: HList : c.WeakTypeTag,
+    HeadFieldValueType : c.WeakTypeTag,
+    RestFieldValueTypes <: HList : c.WeakTypeTag,
     ReturnType : c.WeakTypeTag
   ](c: Context)(formType: c.TypeName) = {
     import c.universe._
 
+    val rootHlistType =
+      c.weakTypeOf[FieldBoxTypes] match {
+        case TypeRef(_, baseType, _) =>
+          baseType
+      }
     val fieldBoxTypeList = unwindHlistTypes(c)(c.weakTypeOf[FieldBoxTypes])
-    val fieldValueTypeList = unwindHlistTypes(c)(c.weakTypeOf[FieldValueTypes])
+    val fieldValueTypeList =
+      c.weakTypeOf[HeadFieldValueType] ::
+        unwindHlistTypes(c)(c.weakTypeOf[RestFieldValueTypes])
 
     val returnTypeTree = TypeTree(c.weakTypeOf[ReturnType])
 
@@ -387,7 +357,8 @@ object FormalityFormHelper {
       if (fieldValueTypeList.length > 22) {
         AppliedTypeTree(
           Ident(TypeName("Function1")),
-          List(TypeTree(c.weakTypeOf[FieldValueTypes]), returnTypeTree)
+          // FIXME This isn't quite right...
+          List(TypeTree(c.weakTypeOf[RestFieldValueTypes]), returnTypeTree)
         )
       } else {
         AppliedTypeTree(
@@ -409,15 +380,23 @@ object FormalityFormHelper {
       }
 
     q"""{
-      val reversedForm = ${c.prefix}
+      val formProto = ${c.prefix}
 
       new ${Ident(formType)}[
         ${c.weakTypeOf[FieldTypes]},
         ${c.weakTypeOf[FieldBoxTypes]},
-        ${c.weakTypeOf[FieldValueTypes]},
+        ${AppliedTypeTree(Ident(rootHlistType), List(TypeTree(c.weakTypeOf[HeadFieldValueType]), TypeTree(c.weakTypeOf[RestFieldValueTypes])))},
         $functionType,
         $boxedFunctionType
-      ](reversedForm.fields, Nil, Nil, Nil)
+      ](
+        formProto.fields,
+        () => {
+          val (boxes, combinableBox) = formProto.computeValues()
+          (boxes, combinableBox.rhs)
+        },
+        formProto.bindFields,
+        Nil, Nil, Nil
+      )
     }"""
   }
 
@@ -439,65 +418,63 @@ object StandardFormalityForm {
   def buildForm[
     FieldTypes <: HList : c.WeakTypeTag,
     FieldBoxTypes <: HList : c.WeakTypeTag,
-    FieldValueTypes <: HList : c.WeakTypeTag
+    HeadFieldValueType : c.WeakTypeTag,
+    RestFieldValueTypes <: HList : c.WeakTypeTag
   ](c: Context) = {
     FormalityFormHelper.buildFormForTypes[
       FieldTypes,
       FieldBoxTypes,
-      FieldValueTypes,
+      HeadFieldValueType,
+      RestFieldValueTypes,
       Unit
     ](c)(c.universe.TypeName("StandardFormalityForm"))
   }
 }
 
 case class StandardFormalityForm[
-  FieldList <: HList : *->*[FieldHolderBase]#λ,
-  FieldBoxList <: HList : *->*[Box]#λ,
+  FieldList <: HList,
+  FieldBoxList <: HList,
   FieldValueList <: HList,
   FunctionType,
   BoxedFunctionType
 ](
   fields: FieldList,
+  computeValues: ()=>(FieldBoxList, CombinableBoxie.Result[FieldValueList]),
+  bindFields: CssSel,
   submissionHandlers: List[(FieldBoxList)=>Unit],
   successHandlers: List[(FieldValueList)=>Unit],
-  failureHandlers: List[(FieldBoxList)=>Unit]
+  failureHandlers: List[(List[Failure])=>Unit]
 ) extends FormalityForm[FieldList, FieldBoxList, FieldValueList, Unit, FunctionType, BoxedFunctionType] {
-  import FormalityForm._
+  def onSubmissionHList(handler: (FieldBoxList)=>Unit) = {
+    copy[FieldList, FieldBoxList, FieldValueList, FunctionType, BoxedFunctionType](
+      submissionHandlers = handler :: submissionHandlers
+    )
+  }
+  def onSuccessHList(handler: (FieldValueList)=>Unit) = {
+    copy[FieldList, FieldBoxList, FieldValueList, FunctionType, BoxedFunctionType](
+      successHandlers = handler :: successHandlers
+    )
+  }
+  def onFailure(handler: (List[Failure])=>Unit) = {
+    copy[FieldList, FieldBoxList, FieldValueList, FunctionType, BoxedFunctionType](
+      failureHandlers = handler :: failureHandlers
+    )
+  }
 
-  def submitBind(
-    implicit definedCheckFolder: LeftFolderAux[FieldList, Boolean, checkFieldsDefined.type, Boolean],
-                              boxFolder: RightFolderAux[FieldList, HNil, extractFieldBox.type, FieldBoxList],
-                              valueFolder: RightFolderAux[FieldList, HNil, extractFieldValue.type, FieldValueList]
-  ) = {
+  def submitBind = {
     "type=submit" #> SHtml.onSubmit((s: String) => handleSubmit())
   }
 
-  def onSubmissionHList(handler: (FieldBoxList)=>Unit) = {
-    copy[FieldList, FieldBoxList, FieldValueList, FunctionType, BoxedFunctionType](submissionHandlers = handler :: submissionHandlers)
-  }
-  def onSuccessHList(handler: (FieldValueList)=>Unit) = {
-    copy[FieldList, FieldBoxList, FieldValueList, FunctionType, BoxedFunctionType](successHandlers = handler :: successHandlers)
-  }
-  def onFailureHList(handler: (FieldBoxList)=>Unit) = {
-    copy[FieldList, FieldBoxList, FieldValueList, FunctionType, BoxedFunctionType](failureHandlers = handler :: failureHandlers)
-  }
+  def handleSubmit() = {
+    val (valueBoxes, valueResult) = computeValues()
+    
+    submissionHandlers.foreach(_(valueBoxes))
 
-  def handleSubmit()(implicit definedCheckFolder: LeftFolderAux[FieldList, Boolean, checkFieldsDefined.type, Boolean],
-                              boxFolder: RightFolderAux[FieldList, HNil, extractFieldBox.type, FieldBoxList],
-                              valueFolder: RightFolderAux[FieldList, HNil, extractFieldValue.type, FieldValueList]) = {
-    val boxes: FieldBoxList = fields.foldRight(HNil: HNil)(extractFieldBox)
-    submissionHandlers.foreach(_(boxes))
-
-    // FIXME We should be able to do this with a liftO-like function
-    // FIXME that lifts a list of Boxes into an Box of HList with
-    // FIXME the appropriate type, rather than checking for definition
-    // FIXME and then extracting the value via openOrThrowException.
-    if (fields.foldLeft(true)(checkFieldsDefined)) {
-      val values: FieldValueList = fields.foldRight(HNil: HNil)(extractFieldValue)
-
-      successHandlers.foreach(_(values))
-    } else {
-      failureHandlers.foreach(_(boxes))
+    valueResult match {
+      case Right(values) =>
+        successHandlers.foreach(_(values))
+      case Left(failures) =>
+        failureHandlers.foreach(_(failures))
     }
   }
 }
@@ -508,64 +485,58 @@ object AjaxFormalityForm {
   def buildForm[
     FieldTypes <: HList : c.WeakTypeTag,
     FieldBoxTypes <: HList : c.WeakTypeTag,
-    FieldValueTypes <: HList : c.WeakTypeTag
+    HeadFieldValueType : c.WeakTypeTag,
+    RestFieldValueTypes <: HList : c.WeakTypeTag
   ](c: Context) = {
     FormalityFormHelper.buildFormForTypes[
       FieldTypes,
       FieldBoxTypes,
-      FieldValueTypes,
+      HeadFieldValueType,
+      RestFieldValueTypes,
       JsCmd
     ](c)(c.universe.TypeName("AjaxFormalityForm"))
   }
 }
 case class AjaxFormalityForm[
-  FieldList <: HList : *->*[FieldHolderBase]#λ,
-  FieldBoxList <: HList : *->*[Box]#λ,
+  FieldList <: HList,
+  FieldBoxList <: HList,
   FieldValueList <: HList,
   FunctionType,
   BoxedFunctionType
 ](
   fields: FieldList,
+  computeValues: ()=>(FieldBoxList, CombinableBoxie.Result[FieldValueList]),
+  bindFields: CssSel,
   submissionHandlers: List[(FieldBoxList)=>Unit],
   successHandlers: List[(FieldValueList)=>JsCmd],
-  failureHandlers: List[(FieldBoxList)=>JsCmd]
+  failureHandlers: List[(List[Failure])=>JsCmd]
 ) extends FormalityForm[FieldList, FieldBoxList, FieldValueList, JsCmd, FunctionType, BoxedFunctionType] {
-  import FormalityForm._
-
-  def submitBind(
-    implicit definedCheckFolder: LeftFolderAux[FieldList, Boolean, checkFieldsDefined.type, Boolean],
-                              boxFolder: RightFolderAux[FieldList, HNil, extractFieldBox.type, FieldBoxList],
-                              valueFolder: RightFolderAux[FieldList, HNil, extractFieldValue.type, FieldValueList]
-  ) = {
-    "type=submit" #> SHtml.ajaxOnSubmit(() => handleSubmit())
-  }
-
   def onSubmissionHList(handler: (FieldBoxList)=>Unit) = {
     copy[FieldList, FieldBoxList, FieldValueList, FunctionType, BoxedFunctionType](submissionHandlers = handler :: submissionHandlers)
   }
   def onSuccessHList(handler: (FieldValueList)=>JsCmd) = {
     copy[FieldList, FieldBoxList, FieldValueList, FunctionType, BoxedFunctionType](successHandlers = handler :: successHandlers)
   }
-  def onFailureHList(handler: (FieldBoxList)=>JsCmd) = {
-    copy[FieldList, FieldBoxList, FieldValueList, FunctionType, BoxedFunctionType](failureHandlers = handler :: failureHandlers)
+  def onFailure(handler: (List[Failure])=>JsCmd) = {
+    copy[FieldList, FieldBoxList, FieldValueList, FunctionType, BoxedFunctionType](
+      failureHandlers = handler :: failureHandlers
+    )
   }
 
-  def handleSubmit()(implicit definedCheckFolder: LeftFolderAux[FieldList, Boolean, checkFieldsDefined.type, Boolean],
-                              boxFolder: RightFolderAux[FieldList, HNil, extractFieldBox.type, FieldBoxList],
-                              valueFolder: RightFolderAux[FieldList, HNil, extractFieldValue.type, FieldValueList]) = {
-    val boxes: FieldBoxList = fields.foldRight(HNil: HNil)(extractFieldBox)
-    submissionHandlers.foreach(_(boxes))
+  def submitBind = {
+    "type=submit" #> SHtml.ajaxOnSubmit(handleSubmit)
+  }
 
-    // FIXME We should be able to do this with a liftO-like function
-    // FIXME that lifts a list of Boxes into an Box of HList with
-    // FIXME the appropriate type, rather than checking for definition
-    // FIXME and then extracting the value via openOrThrowException.
-    if (fields.foldLeft(true)(checkFieldsDefined)) {
-      val values: FieldValueList = fields.foldRight(HNil: HNil)(extractFieldValue)
+  def handleSubmit() = {
+    val (valueBoxes, valueResult) = computeValues()
+    
+    submissionHandlers.foreach(_(valueBoxes))
 
-      successHandlers.map(_(values)).foldLeft(Noop)(_ & _)
-    } else {
-      failureHandlers.map(_(boxes)).foldLeft(Noop)(_ & _)
+    valueResult match {
+      case Right(values) =>
+        successHandlers.map(_(values)).foldLeft(Noop)(_ & _)
+      case Left(failures) =>
+        failureHandlers.map(_(failures)).foldLeft(Noop)(_ & _)
     }
   }
 }
