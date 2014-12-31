@@ -348,7 +348,14 @@ object FormalityFormHelper {
     val fieldValueTypeList =
       c.weakTypeOf[HeadFieldValueType] ::
         unwindHlistTypes(c)(c.weakTypeOf[RestFieldValueTypes])
-
+    val fieldValueTypeListTree =
+      AppliedTypeTree(
+        Ident(rootHlistType),
+        List(
+          TypeTree(c.weakTypeOf[HeadFieldValueType]),
+          TypeTree(c.weakTypeOf[RestFieldValueTypes])
+        )
+      )
     val returnTypeTree = TypeTree(c.weakTypeOf[ReturnType])
 
     // Both function types degrade to take HLists when we exceed the available
@@ -357,8 +364,7 @@ object FormalityFormHelper {
       if (fieldValueTypeList.length > 22) {
         AppliedTypeTree(
           Ident(TypeName("Function1")),
-          // FIXME This isn't quite right...
-          List(TypeTree(c.weakTypeOf[RestFieldValueTypes]), returnTypeTree)
+          List(fieldValueTypeListTree, returnTypeTree)
         )
       } else {
         AppliedTypeTree(
@@ -385,7 +391,7 @@ object FormalityFormHelper {
       new ${Ident(formType)}[
         ${c.weakTypeOf[FieldTypes]},
         ${c.weakTypeOf[FieldBoxTypes]},
-        ${AppliedTypeTree(Ident(rootHlistType), List(TypeTree(c.weakTypeOf[HeadFieldValueType]), TypeTree(c.weakTypeOf[RestFieldValueTypes])))},
+        ${fieldValueTypeListTree},
         $functionType,
         $boxedFunctionType
       ](
