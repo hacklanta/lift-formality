@@ -49,7 +49,7 @@ A basic form snippet would look like this:
       User(name, age, phoneNumber, termsAndConditions).save
     }
   
-  "form" #> registrationForm.binder()
+  "form" #> registrationForm.binder
 ```
 
 The corresponding HTML5 markup could be:
