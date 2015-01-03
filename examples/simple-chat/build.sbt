@@ -24,7 +24,7 @@ libraryDependencies ++= {
     "org.eclipse.jetty" % "jetty-webapp"        % "8.1.7.v20120910"  % "container,test",
     "org.eclipse.jetty.orbit" % "javax.servlet" % "3.0.0.v201112011016" % "container,test" artifacts Artifact("javax.servlet", "jar", "jar"),
     "ch.qos.logback"    % "logback-classic"     % "1.0.6",
-    "com.hacklanta"     %% "lift-formality"     % "0.2-SNAPSHOT",
+    "com.hacklanta"     %% "lift-formality"     % "0.3.0-SNAPSHOT",
     "org.specs2"        %% "specs2-core"        % "2.4.13"            % "test"
   )
 }

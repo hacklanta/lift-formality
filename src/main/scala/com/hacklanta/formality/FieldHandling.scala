@@ -13,7 +13,7 @@ import net.liftweb.util._
 
 // A container for a given field's value. This is a TransientRequestVar, and it
 // is salted so that each instance is mapped uniquely in the function map.
-private[formality] class FieldValueVar[FieldValueType] extends TransientRequestVar[Box[FieldValueType]](Empty) {
+private[formality] class FieldValueVar[FieldValueType](dflt: =>Box[FieldValueType] = Empty) extends TransientRequestVar[Box[FieldValueType]](dflt) {
   override def __nameSalt = randomString(10)
 }
 
@@ -87,7 +87,7 @@ abstract class BaseFieldHolder[
   FieldValueType,
   // for example, a Square value type should be able to use a Validation[Shape]
   ValidationType >: FieldValueType,
-  // for example, a Square value type should be able to use a EventHandler
+  // for example, a Square value type should be able to use a EventHandler[Rectangle]
   EventHandlerType >: FieldValueType
 ](
   selector: String,

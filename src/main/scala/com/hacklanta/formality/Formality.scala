@@ -105,6 +105,7 @@ object Formality extends FieldValueHelpers {
   def on[T](eventName: String, handler: (T)=>JsCmd) = EventHandler[T](eventName, handler)
 
   def form = FormalityFormProto()
+  def fieldGroup = FieldGroup()
 
   val :: = HListies.:+:
   val :+: = HListies.:+:

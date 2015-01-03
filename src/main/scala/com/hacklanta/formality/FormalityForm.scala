@@ -20,7 +20,7 @@ object FormalityFormProto {
   // expression accumulates the fields backwards; because the fields are kept in
   // an HList, the last field added is the first field we deal with later, so
   // the fields are actually being added in the "right order".
-  private def buildFieldsExpression(c: Context)(fields: Seq[c.Expr[FieldHolderBase[_]]]) = {
+  private[formality] def buildFieldsExpression(c: Context)(fields: Seq[c.Expr[FieldHolderBase[_]]]) = {
     import c.universe._
 
     fields.reverse.foldLeft(q"""${c.prefix}""") { (expression, field) =>
@@ -67,14 +67,7 @@ case class FormalityFormBase private[formality]() {
    *         `ajaxFormalize` on the form if you want to attach submission
    *         handlers.
    */
-  def withField[
-    IncomingValueType,
-    FieldValueType,
-    ValidationType >: FieldValueType,
-    EventHandlerType >: FieldValueType
-  ](
-    field: BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType]
-  ) = {
+  def withField[FieldValueType](field: FieldHolderBase[FieldValueType]) = {
     FormalityFormProto[
       FieldHolderBase[FieldValueType] :+: HNil,
       Box[FieldValueType] :+: HNil,
@@ -141,14 +134,7 @@ case class FormalityFormProto[
    *         `ajaxFormalize` on that form if you want to attach submission
    *         handlers.
    */
-  def withField[
-    IncomingValueType,
-    FieldValueType,
-    ValidationType >: FieldValueType,
-    EventHandlerType >: FieldValueType
-  ](
-    field: BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType]
-  ) = {
+  def withField[FieldValueType](field: FieldHolderBase[FieldValueType]) = {
     this.copy[
       FieldHolderBase[FieldValueType] :+: FieldList,
       Box[FieldValueType] :+: FieldBoxList,
@@ -406,7 +392,7 @@ object FormalityFormHelper {
     }"""
   }
 
-  private def unwindHlistTypes(c: Context)(hlistType: c.universe.Type):  List[c.universe.Type] = {
+  private[formality] def unwindHlistTypes(c: Context)(hlistType: c.universe.Type):  List[c.universe.Type] = {
     import c.universe._
 
     hlistType match {
@@ -473,7 +459,7 @@ case class StandardFormalityForm[
 
   def handleSubmit() = {
     val (valueBoxes, valueResult) = computeValues()
-    
+
     submissionHandlers.foreach(_(valueBoxes))
 
     valueResult match {

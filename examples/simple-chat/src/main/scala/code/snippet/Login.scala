@@ -26,12 +26,12 @@ class Login {
   def form = {
     val loginForm =
       Formality.form withFields(
-        field[String]("#email"),
-        field[String]("#password")
-      ) onSuccess { (email, password) =>
-        User.findUser(email, password).foreach { user =>
-          LoginHelpers.logUserIn(user)
-        }
+        fieldGroup.withFields(
+          field[String]("#email"),
+          field[String]("#password")
+        ) withConverter(User.findUser _)
+      ) onSuccess { user =>
+        LoginHelpers.logUserIn(user)
 
         S.redirectTo("/")
       }
