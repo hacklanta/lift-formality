@@ -232,6 +232,72 @@ Note that the basic `Failure` message when validations fail simply says
 a `ParamFailure` whose parameter is a list of `String`s representing the
 validation errors for that field.
 
+### Field Groups
+
+Formality provides an abstraction above fields, called field groups. This
+lets you group fields into nested groups. By default, this looks like this:
+
+```scala
+  val registrationForm =
+    form withFields(
+      fieldGroup(
+        nameField,
+        phoneNumberField,
+        ageField
+      )
+      termsField
+    ) onSuccess {
+      case (name :+: phoneNumber :+: age :+: HNil) :+: terms :+: HNil
+        // Assuming a case class User(name: String, age: Int, phoneNumber: String) this time.
+        if (terms) {
+          User(name, phoneNumber, age).save
+        }
+      User(name, age, phoneNumber, termsAndConditions).save
+    } onFailure { (nameBox, phoneNumberBox, ageBox, termsBox) =>
+      List(nameBox, phoneNumberBox, ageBox, termsBox).foreach {
+        case ParamFailure(message, _, _, validationErrors) =>
+          logger.error("Got " + message + " with validation errors: " + validationErrors)
+        case Failure(message, _, _) =>
+          logger.error("Got " + message)
+        case _ =>
+      }
+    }
+```
+
+But field groups also have a very important property: they can be converted
+into a different type using its `withConverter` function. In particular, a field
+group can be a placeholder for a type that involves its combined fields. Let's
+redo the above:
+
+```scala
+  val registrationForm =
+    form withFields(
+      fieldGroup(
+        nameField,
+        phoneNumberField,
+        ageField
+      ).withConverter(User _)
+      termsField
+    ) onSuccess {
+      case user :+: terms :+: HNil
+        if (terms) {
+          user.save
+        }
+      User(name, age, phoneNumber, termsAndConditions).save
+    } onFailure { (nameBox, phoneNumberBox, ageBox, termsBox) =>
+      List(nameBox, phoneNumberBox, ageBox, termsBox).foreach {
+        case ParamFailure(message, _, _, validationErrors) =>
+          logger.error("Got " + message + " with validation errors: " + validationErrors)
+        case Failure(message, _, _) =>
+          logger.error("Got " + message)
+        case _ =>
+      }
+    }
+```
+
+Our success handler now gets a full-on User object instead of the decomposed
+fields, and we could use the `User` constructor directly.
+
 ## License
 
 `lift-formality` is provided under the terms of the MIT License. No warranties
