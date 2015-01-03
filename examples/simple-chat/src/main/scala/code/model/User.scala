@@ -1,6 +1,8 @@
 package code
 package model
 
+import net.liftweb.common._
+
 case class User(email: String, password: String)
 
 object User {
@@ -12,7 +14,7 @@ object User {
     user
   }
 
-  def findUser(email: String, password: String) = {
+  def findUser(email: String, password: String): Box[User] = {
     users.collectFirst {
       case user @ User(`email`, `password`) =>
         user
