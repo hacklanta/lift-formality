@@ -277,8 +277,21 @@ object FormalityFormHelper {
   ) = {
     import c.universe._
 
+    // If the form has a single field in it and that field is a FieldGroup,
+    // say with type String :+: String :+: HNil, then the overall type of
+    // the handler needs to be (String :+: String :+: HNil) :+: HNil (i.e.,
+    // an HList with a single entry that is itself an HList). In those cases,
+    // we make the handler's invocation always take the nested HList, not the
+    // containing one, so there's only one level of HList (above, this would
+    // mean the handler is a (String :+: String :+: HNil)=>ReturnType). If
+    // the user really wants the top-level HList, they have to call the
+    // onSubmissionHList or onSuccessHList method directly.
+    val formHasSingleGroup_? =
+      hlistTypes.length == 1 &&
+      hlistTypes.head <:< c.weakTypeOf[HList]
+
     // If we're dealing with an HList function, go the simple route.
-    if (functionTypes.length == 1 && functionTypes.head <:< c.weakTypeOf[HList]) {
+    if (functionTypes.length == 1 && functionTypes.head <:< c.weakTypeOf[HList] && ! formHasSingleGroup_?) {
       q"val handler = $handler"
     } else {
       // Make sure types are compatible.
