@@ -257,9 +257,9 @@ lets you group fields into nested groups. By default, this looks like this:
 ```
 
 But field groups also have a very important property: they can be converted
-into a different type using its `withConverter` function. In particular, a field
-group can be a placeholder for a type that involves its combined fields. Let's
-redo the above:
+into a different type using its `as` function. In particular, a field group can
+be a placeholder for a type that involves its combined fields. Let's redo the
+above:
 
 ```scala
   val registrationForm =
@@ -268,7 +268,7 @@ redo the above:
         nameField,
         phoneNumberField,
         ageField
-      ).withConverter(User _)
+      ).as(User.apply _),
       termsField
     ) onSuccess { (user, terms) =>
       if (terms) {
@@ -279,6 +279,73 @@ redo the above:
 
 Our success handler now gets a full-on User object instead of the decomposed
 fields, and we could use the `User` constructor directly.
+
+`as` takes a function that takes the parameters from the group and produces a
+type T. However, sometimes we want to be able to fail at the conversion step.
+In those cases, we can use `withConverter` instead, which allows us to return a
+`Box[T]`, where a non-`Full` will cause a failed form submission:
+
+```scala
+  val registrationForm =
+    form withFields(
+      fieldGroup.withFields(
+        nameField,
+        phoneNumberField,
+        ageField
+      ).withConverter(User.createUnique _),
+      termsField
+    ) onSuccess { (user, terms) =>
+      if (terms) {
+        user.save
+      }
+    }
+```
+
+Above, `createUnique` can be considered as a version of `User` that creates the
+new `User` object and returns a `Full` unless, say, the name is not unique. In that case it returns a `Failure`.
+
+Note that failures at the group conversion level don't trigger `S.error`, since
+there's no concrete field to associate the failure with. You can do your own
+handling of the failure in the `onFailure` handler.
+
+#### Scoping field groups
+
+You can also add a scope to a field group. This is a CSS selector that ensures
+the fields in the field group are bound only if they're found within elements
+that match that selector:
+
+```scala
+  val registrationForm =
+    form withFields(
+      fieldGroup(".user").withFields(
+        nameField,
+        phoneNumberField,
+        ageField
+      ).withConverter(User.createUnique _),
+      termsField
+    ) onSuccess ...
+```
+
+With the above code, the markup that we introduced at the beginning would no
+longer successfully bind the user part of the registration form. Instead, we
+would need something like this:
+
+```html
+<form data-lift="Registration.form">
+  <fieldset class="user">
+    <legend>User Information</legend>
+
+    <input class="name">
+    <input class="phone-number" placeholder="(XXX) XXX-XXXX">
+    <input class="age" type="number">
+  </fieldset>
+
+  <label for="terms-and-conditions>
+    <input type="checkbox" id="terms-and-conditions">
+    I agree to the <a href="/terms">Terms and Conditions</a>
+  </label>
+</form>
+```
 
 ## License
 
