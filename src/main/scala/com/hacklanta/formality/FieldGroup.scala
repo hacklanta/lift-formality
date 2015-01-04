@@ -71,6 +71,13 @@ object FieldGroup {
                 converter.apply(..$parameterList)
             })
           }
+
+          def withUnboxedConverterFn[T](converter: (..$hlistTypes)=>T) = {
+            withHlistConverter[T]({
+              case $matcher =>
+                net.liftweb.common.Full(converter.apply(..$parameterList))
+            })
+          }
         }
       }"""
     }
@@ -80,6 +87,12 @@ object FieldGroup {
     import c.universe._
 
     q"${formalizeImpl(c)}.withConverterFn($newConverter)"
+  }
+
+  def withUnboxedConverterImpl[T](c: Context)(newConverter: c.Expr[T]) = {
+    import c.universe._
+
+    q"${formalizeImpl(c)}.withUnboxedConverterFn($newConverter)"
   }
 
   def apply() = {
@@ -125,6 +138,7 @@ case class FieldGroup[
     )
   }
   def withConverter[T](newConverter: T): FieldGroup[_,_,_,_] = macro FieldGroup.withConverterImpl[T]
+  def as[T](newConverter: T): FieldGroup[_,_,_,_] = macro FieldGroup.withUnboxedConverterImpl[T]
 
   def formalize: FieldGroup[_,_,_,_] = macro FieldGroup.formalizeImpl
 

@@ -30,8 +30,13 @@ class Signup {
     val passwordField = field[String]("#password") ? notEmpty
 
     val registrationForm =
-      Formality.form.withFields(emailField, passwordField) onSubmission { (email, password) =>
-        LoginHelpers.logUserIn(User.create(User(email.openOrThrowException(""), password.openOrThrowException(""))))
+      Formality.form.withFields(
+        fieldGroup.withFields(
+          emailField,
+          passwordField
+        ).as(User.apply _)
+      ) onSuccess { user =>
+        LoginHelpers.logUserIn(User.create(user))
 
         S.redirectTo("/")
       }
