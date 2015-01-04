@@ -240,11 +240,11 @@ lets you group fields into nested groups. By default, this looks like this:
 ```scala
   val registrationForm =
     form withFields(
-      fieldGroup(
+      fieldGroup.withFields(
         nameField,
         phoneNumberField,
         ageField
-      )
+      ),
       termsField
     ) onSuccess {
       case ((name :+: phoneNumber :+: age :+: HNil), terms) =>
@@ -264,7 +264,7 @@ redo the above:
 ```scala
   val registrationForm =
     form withFields(
-      fieldGroup(
+      fieldGroup.withFields(
         nameField,
         phoneNumberField,
         ageField
