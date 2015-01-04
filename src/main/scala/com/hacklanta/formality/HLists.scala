@@ -13,8 +13,8 @@ object HListies {
   sealed trait HList
 
   implicit final class HListMethods[ListSoFar <: HList](hlist: ListSoFar) extends AnyRef {
-    def :+:[T](v: T): HCons[T, ListSoFar] = {
-      HCons(v, hlist)
+    def :+:[T](v: T): :+:[T, ListSoFar] = {
+      HListies.:+:(v, hlist)
     }
 
     def length: Int = {
@@ -37,14 +37,14 @@ object HListies {
   /**
    * The HList cons cell
    */
-  final case class HCons[+H, +T <: HList](head: H, tail: T) extends HList {
+  final case class :+:[+H, +T <: HList](head: H, tail: T) extends HList {
     override def toString = head + " :+: " + tail
   }
 
-  type :+:[+H, +T <: HList] = HCons[H, T]
+  //type :+:[+H, +T <: HList] = HCons[H, T]
 
-  object :+: {
+  /*object :+: {
     def unapply[H, T <: HList](in: HCons[H, T]): Option[(H, T)] = Some(in.head, in.tail)
-  }
+  }*/
 
 }

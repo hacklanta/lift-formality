@@ -247,20 +247,12 @@ lets you group fields into nested groups. By default, this looks like this:
       )
       termsField
     ) onSuccess {
-      case (name :+: phoneNumber :+: age :+: HNil) :+: terms :+: HNil
+      case ((name :+: phoneNumber :+: age :+: HNil), terms) =>
         // Assuming a case class User(name: String, age: Int, phoneNumber: String) this time.
         if (terms) {
           User(name, phoneNumber, age).save
         }
       User(name, age, phoneNumber, termsAndConditions).save
-    } onFailure { (nameBox, phoneNumberBox, ageBox, termsBox) =>
-      List(nameBox, phoneNumberBox, ageBox, termsBox).foreach {
-        case ParamFailure(message, _, _, validationErrors) =>
-          logger.error("Got " + message + " with validation errors: " + validationErrors)
-        case Failure(message, _, _) =>
-          logger.error("Got " + message)
-        case _ =>
-      }
     }
 ```
 
@@ -278,19 +270,9 @@ redo the above:
         ageField
       ).withConverter(User _)
       termsField
-    ) onSuccess {
-      case user :+: terms :+: HNil
-        if (terms) {
-          user.save
-        }
-      User(name, age, phoneNumber, termsAndConditions).save
-    } onFailure { (nameBox, phoneNumberBox, ageBox, termsBox) =>
-      List(nameBox, phoneNumberBox, ageBox, termsBox).foreach {
-        case ParamFailure(message, _, _, validationErrors) =>
-          logger.error("Got " + message + " with validation errors: " + validationErrors)
-        case Failure(message, _, _) =>
-          logger.error("Got " + message)
-        case _ =>
+    ) onSuccess { (user, terms) =>
+      if (terms) {
+        user.save
       }
     }
 ```
