@@ -216,8 +216,8 @@ do this, you can add a failure handler to the form:
       termsField
     ) onSuccess {
         // same as above
-    } onFailure { (nameBox, phoneNumberBox, ageBox, termsBox) =>
-      List(nameBox, phoneNumberBox, ageBox, termsBox).foreach {
+    } onFailure { failures =>
+      failures.foreach {
         case ParamFailure(message, _, _, validationErrors) =>
           logger.error("Got " + message + " with validation errors: " + validationErrors)
         case Failure(message, _, _) =>
