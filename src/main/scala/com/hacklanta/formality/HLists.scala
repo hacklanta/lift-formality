@@ -18,7 +18,12 @@ object HListies {
     }
 
     def length: Int = {
-      1 + hlist.length
+      hlist match {
+        case HNil =>
+          0
+        case head :+: rest =>
+          1 + rest.length
+      }
     }
   }
 
