@@ -17,7 +17,7 @@ import Formality._
 
 class ValidationSpec extends Specification {
   "Formality forms when submitting field with validations" should {
-    "not run success handler if validations don't pass" in new IntFieldContext {
+    "not run success handler if validations don't pass" in new IntFieldScope {
       var handlerRan = false
 
       val validatingField = formField ? { incoming: Int =>  Full("Failed.") }
@@ -29,7 +29,7 @@ class ValidationSpec extends Specification {
 
       handlerRan must_== false
     }
-    "have no validation errors on successful submission" in new IntFieldContext {
+    "have no validation errors on successful submission" in new IntFieldScope {
       var handlerRan = false
 
       val validatingField = formField ? { incoming: Int => Empty }
@@ -42,7 +42,7 @@ class ValidationSpec extends Specification {
       handlerRan must_== true
       S.errors must haveLength(0)
     }
-    "spit out a validation error if there is one" in new IntFieldContext {
+    "spit out a validation error if there is one" in new IntFieldScope {
       val validatingField = formField ? { incoming: Int => Full("error") }
       val testForm = form.withField(validatingField).formalize
 
@@ -50,24 +50,21 @@ class ValidationSpec extends Specification {
 
       S.errors must haveLength(1)
     }
-    "associate the validation error with the field name" in new IntFieldContext {
+    "associate the validation error with the field name" in new IntFieldScope {
       val validatingField = formField ? { incoming: Int => Full("error") }
       val testForm = form.withField(validatingField).formalize
 
       val intFieldName = bindAndSubmitForm(testForm.binder)
 
-      intFieldName match {
+      intFieldName must beLike {
         case Some(fieldName) =>
           S.errors collect {
             case (error, Full(name)) if fieldName == name =>
               error
           } must haveLength(1)
-
-        case _ =>
-          failure("Form transformation failed.")
       }
     }
-    "associate multiple validation errors with their field name" in new IntFieldContext {
+    "associate multiple validation errors with their field name" in new IntFieldScope {
       val validatingField =
         formField ?
           { incoming: Int => Full("error") } ?
@@ -77,18 +74,15 @@ class ValidationSpec extends Specification {
 
       val intFieldName = bindAndSubmitForm(testForm.binder)
 
-      intFieldName match {
+      intFieldName must beLike {
         case Some(fieldName) =>
           S.errors collect {
             case (error, Full(name)) if fieldName == name =>
               error
           } must haveLength(3)
-
-        case _ =>
-          failure("Form transformation failed.")
       }
     }
-    "associate validation errors with multiple field names if needed" in new IntFieldContext {
+    "associate validation errors with multiple field names if needed" in new IntFieldScope {
       val validatingField =
         formField ?
           { incoming: Int => Full("error") }
@@ -107,29 +101,23 @@ class ValidationSpec extends Specification {
 
       val intFieldName = submitForm(formMarkup, additionalValues = secondIntFieldName.toList.map(_ -> "8"))
 
-      intFieldName match {
+      intFieldName must beLike {
         case Some(fieldName) =>
           S.errors collect {
             case (error, Full(name)) if fieldName == name =>
               error
           } must haveLength(1)
-
-        case _ =>
-          failure("Form transformation failed.")
       }
 
-      secondIntFieldName match {
+      secondIntFieldName must beLike {
         case Some(fieldName) =>
           S.errors collect {
             case (error, Full(name)) if fieldName == name =>
               error
           } must haveLength(2)
-
-        case _ =>
-          failure("Form transformation failed.")
       }
     }
-    "provide the validation errors in the failure handler as a ParamFailure param" in new IntFieldContext {
+    "provide the validation errors in the failure handler as a ParamFailure param" in new IntFieldScope {
       var failedValues: List[Failure] = Nil
 
       val validatingField =
@@ -143,11 +131,9 @@ class ValidationSpec extends Specification {
 
       val intFieldName = bindAndSubmitForm(testForm.binder)
 
-      failedValues match {
+      failedValues must beLike {
         case List(ParamFailure(_, _, _, validationErrors)) =>
           validationErrors must_== List("error", "second error", "other error")
-        case other =>
-          failure("Got " + other + " instead of one param failure with the invalid input.")
       }
     }
   }
