@@ -4,7 +4,6 @@ package formality
 import scala.xml._
 
 import org.specs2.mutable._
-import org.specs2.execute._
 import org.specs2.specification.Scope
 
 import net.liftweb.common._
@@ -22,12 +21,11 @@ class ValidationSpec extends Specification {
       var handlerRan = false
 
       val validatingField = formField ? { incoming: Int =>  Full("Failed.") }
-      val testForm = form withField validatingField formalize() onSuccess {
-        case _ =>
-          handlerRan = true
+      val testForm = form.withField(validatingField).formalize onSuccess { _ =>
+        handlerRan = true
       }
 
-      bindAndSubmitForm(testForm.binder())
+      bindAndSubmitForm(testForm.binder)
 
       handlerRan must_== false
     }
@@ -35,29 +33,28 @@ class ValidationSpec extends Specification {
       var handlerRan = false
 
       val validatingField = formField ? { incoming: Int => Empty }
-      val testForm = form withField validatingField formalize() onSuccess {
-        case _ =>
-          handlerRan = true
+      val testForm = form.withField(validatingField).formalize onSuccess { _ =>
+        handlerRan = true
       }
 
-      bindAndSubmitForm(testForm.binder())
+      bindAndSubmitForm(testForm.binder)
 
       handlerRan must_== true
       S.errors must haveLength(0)
     }
     "spit out a validation error if there is one" in new IntFieldContext {
       val validatingField = formField ? { incoming: Int => Full("error") }
-      val testForm = form withField validatingField formalize()
+      val testForm = form.withField(validatingField).formalize
 
-      bindAndSubmitForm(testForm.binder())
+      bindAndSubmitForm(testForm.binder)
 
       S.errors must haveLength(1)
     }
     "associate the validation error with the field name" in new IntFieldContext {
       val validatingField = formField ? { incoming: Int => Full("error") }
-      val testForm = form withField validatingField formalize()
+      val testForm = form.withField(validatingField).formalize
 
-      val intFieldName = bindAndSubmitForm(testForm.binder())
+      val intFieldName = bindAndSubmitForm(testForm.binder)
 
       intFieldName match {
         case Some(fieldName) =>
@@ -76,9 +73,9 @@ class ValidationSpec extends Specification {
           { incoming: Int => Full("error") } ?
           { incoming: Int => Full("second error") } ?
           { incoming: Int => Full("other error") }
-      val testForm = form withField validatingField formalize()
+      val testForm = form.withField(validatingField).formalize
 
-      val intFieldName = bindAndSubmitForm(testForm.binder())
+      val intFieldName = bindAndSubmitForm(testForm.binder)
 
       intFieldName match {
         case Some(fieldName) =>
@@ -99,11 +96,11 @@ class ValidationSpec extends Specification {
         field[Int]("#int-field-2") ?
           { incoming: Int => Full("bam") } ?
           { incoming: Int => Full("dat fail") }
-      val testForm = form withField validatingField withField otherValidatingField formalize()
+      val testForm = form.withField(validatingField).withField(otherValidatingField).formalize
 
       val binder =
         ("form *+" #> inputWithId("int-field-2")) andThen
-        testForm.binder()
+        testForm.binder
 
       val formMarkup = bindForm(binder)
       val secondIntFieldName = inputNameForId("int-field-2", formMarkup)
@@ -133,25 +130,24 @@ class ValidationSpec extends Specification {
       }
     }
     "provide the validation errors in the failure handler as a ParamFailure param" in new IntFieldContext {
-      var failedValue: Box[Int] = Empty
+      var failedValues: List[Failure] = Nil
 
       val validatingField =
         formField ?
           { incoming: Int => Full("error") } ?
           { incoming: Int => Full("second error") } ?
           { incoming: Int => Full("other error") }
-      val testForm = form withField validatingField formalize() onFailure {
-        case failure :+: HNil =>
-          failedValue = failure
+      val testForm = form.withField(validatingField).formalize onFailure { failures =>
+        failedValues = failures
       }
 
-      val intFieldName = bindAndSubmitForm(testForm.binder())
+      val intFieldName = bindAndSubmitForm(testForm.binder)
 
-      failedValue match {
-        case ParamFailure(_, _, _, validationErrors) =>
+      failedValues match {
+        case List(ParamFailure(_, _, _, validationErrors)) =>
           validationErrors must_== List("error", "second error", "other error")
         case other =>
-          failure("Got " + other + " instead of a param failure with the invalid input.")
+          failure("Got " + other + " instead of one param failure with the invalid input.")
       }
     }
   }

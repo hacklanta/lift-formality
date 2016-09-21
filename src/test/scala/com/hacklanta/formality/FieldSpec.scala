@@ -3,8 +3,10 @@ package formality
 
 import scala.xml._
 
+import org.specs2.execute.AsResult
+import org.specs2.matcher.XmlMatchers._
 import org.specs2.mutable._
-import org.specs2.execute._
+import org.specs2.specification.AroundEach
 
 import net.liftweb.common._
 import net.liftweb.http._
@@ -15,19 +17,19 @@ import Formality._
 trait SessionContext {
   val session = new LiftSession("", StringHelpers.randomString(20), Empty)
 }
-trait SContext extends Around with SessionContext {
-  def around[T <% Result](t: =>T) = {
+trait SContext extends AroundEach with SessionContext {
+  def around[T : AsResult](t: =>T) = {
     S.initIfUninitted(session) {
       AsResult(t)  // execute t inside a http session
     }
   }
 }
 
-class FieldSpec extends Specification {
+class FieldSpec extends Specification with SContext {
   val templateElement = <div class="boomdayada boomdayadan" data-test-attribute="bam">Here's a test!</div>
 
   "Simple fields with no initial value" should {
-    "only bind the name attribute" in new SContext {
+    "only bind the name attribute" in {
       val formField = field[String](".boomdayada")
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -43,7 +45,7 @@ class FieldSpec extends Specification {
   }
   
   "Simple fields with an initial value" should {
-    "only bind the name and value attributes" in new SContext {
+    "only bind the name and value attributes" in {
       val formField = field[String](".boomdayada", "Dat value")
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -59,7 +61,7 @@ class FieldSpec extends Specification {
   }
 
   "Regular file upload fields" should {
-    "only bind the name and type attributes" in new SContext {
+    "only bind the name and type attributes" in {
       val formField = fileUploadField(".boomdayada")
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -75,7 +77,7 @@ class FieldSpec extends Specification {
   }
 
   "Typed file upload fields" should {
-    "only bind the name and type attributes" in new SContext {
+    "only bind the name and type attributes" in {
       implicit def fileToObject(fph: FileParamHolder) = Full("boom")
 
       val formField = typedFileUploadField[String](".boomdayada")
@@ -99,7 +101,7 @@ class FieldSpec extends Specification {
       SHtml.SelectableOption(new Exception("slabai"), "slabai")
     )
 
-    "replace the element wholesale with a select element" in new SContext {
+    "replace the element wholesale with a select element" in {
       val formField = selectField[Exception](".boomdayada", objects)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -111,7 +113,7 @@ class FieldSpec extends Specification {
         "name" -> ".*"
       )
     }
-    "carry any SelectableOption attributes into the resulting options" in new SContext {
+    "carry any SelectableOption attributes into the resulting options" in {
       val objects = List(
         SHtml.SelectableOption(new Exception("ohai"), "ohai", ("test" -> "bam")),
         SHtml.SelectableOption(new Exception("obai"), "obai", ("other-test" -> "bam")),
@@ -135,7 +137,7 @@ class FieldSpec extends Specification {
         "still-other-test" -> "bam"
       )
     }
-    "mark as selected the default object" in new SContext {
+    "mark as selected the default object" in {
       val default = new Exception("ohai")
       val objects = List(
         SHtml.SelectableOption(default, "ohai"),
@@ -170,7 +172,7 @@ class FieldSpec extends Specification {
         </li>
       </ul>
 
-    "only bind to radio buttons and labels in the markup" in new SContext {
+    "only bind to radio buttons and labels in the markup" in {
       val formField = selectField[Exception]("li", objects, asRadioButtons = true)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -189,7 +191,7 @@ class FieldSpec extends Specification {
       // They should all have different values.
       (Set[String]() ++ inputs.map(_ \ "@value").collect { case Group(Seq(Text(value))) => value }).size must_== 3
     }
-    "carry any SelectableOption attributes into the resulting radio buttons" in new SContext {
+    "carry any SelectableOption attributes into the resulting radio buttons" in {
       val objects = List(
         SHtml.SelectableOption(new Exception("ohai"), "ohai", ("test" -> "bam")),
         SHtml.SelectableOption(new Exception("obai"), "obai", ("other-test" -> "bam")),
@@ -213,7 +215,7 @@ class FieldSpec extends Specification {
         "still-other-test" -> "bam"
       )
     }
-    "set the associated label's for attribute when an option has the id attribute set" in new SContext {
+    "set the associated label's for attribute when an option has the id attribute set" in {
       val objects = List(
         SHtml.SelectableOption(new Exception("ohai"), "ohai", ("id" -> "bam")),
         SHtml.SelectableOption(new Exception("obai"), "obai", ("other-test" -> "bam")),
@@ -233,7 +235,7 @@ class FieldSpec extends Specification {
         "for" -> "boom"
       ) \> "slabai"
     }
-    "mark as selected the default object" in new SContext {
+    "mark as selected the default object" in {
       val default = new Exception("ohai")
       val objects = List(
         SHtml.SelectableOption(default, "ohai"),
@@ -264,7 +266,7 @@ class FieldSpec extends Specification {
       (new Exception("slabai"), "slabai")
     )
 
-    "replace the  element wholesale with a select element" in new SContext {
+    "replace the  element wholesale with a select element" in {
       val formField = selectField[Exception](".boomdayada", objects)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -276,7 +278,7 @@ class FieldSpec extends Specification {
         "name" -> ".*"
       )
     }
-    "mark as selected the default object" in new SContext {
+    "mark as selected the default object" in {
       val default = new Exception("ohai")
       val objects = List(
         (default, "ohai"),
@@ -311,7 +313,7 @@ class FieldSpec extends Specification {
         </li>
       </ul>
 
-    "only bind to radio buttons and labels in the markup" in new SContext {
+    "only bind to radio buttons and labels in the markup" in {
       val formField = selectField[Exception]("li", objects, asRadioButtons = true)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -330,7 +332,7 @@ class FieldSpec extends Specification {
       // They should all have different values.
       (Set[String]() ++ inputs.map(_ \ "@value").collect { case Group(Seq(Text(value))) => value }).size must_== 3
     }
-    "mark as selected the default object" in new SContext {
+    "mark as selected the default object" in {
       val default = new Exception("ohai")
       val objects = List(
         (default, "ohai"),
@@ -361,7 +363,7 @@ class FieldSpec extends Specification {
       "slabai"
     )
 
-    "replace the  element wholesale with a select element" in new SContext {
+    "replace the  element wholesale with a select element" in {
       val formField = selectField[String](".boomdayada", objects)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -373,7 +375,7 @@ class FieldSpec extends Specification {
         "name" -> ".*"
       )
     }
-    "mark as selected the default object" in new SContext {
+    "mark as selected the default object" in {
       val formField = selectField[String](".boomdayada", objects, Full("ohai"))
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -401,7 +403,7 @@ class FieldSpec extends Specification {
         </li>
       </ul>
 
-    "only bind to radio buttons and labels in the markup" in new SContext {
+    "only bind to radio buttons and labels in the markup" in {
       val formField = selectField[String]("li", objects, asRadioButtons = true)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -420,7 +422,7 @@ class FieldSpec extends Specification {
       // They should all have different values.
       (Set[String]() ++ inputs.map(_ \ "@value").collect { case Group(Seq(Text(value))) => value }).size must_== 3
     }
-    "mark as selected the default object" in new SContext {
+    "mark as selected the default object" in {
       val formField = selectField[String]("li", objects, Full("ohai"), asRadioButtons = true)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -445,7 +447,7 @@ class FieldSpec extends Specification {
       SHtml.SelectableOption(new Exception("slabai"), "slabai")
     )
 
-    "replace the element wholesale with a select element" in new SContext {
+    "replace the element wholesale with a select element" in {
       val formField = multiSelectField[Exception](".boomdayada", objects)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -458,7 +460,7 @@ class FieldSpec extends Specification {
         "name" -> ".*"
       )
     }
-    "carry any SelectableOption attributes into the resulting options" in new SContext {
+    "carry any SelectableOption attributes into the resulting options" in {
       val objects = List(
         SHtml.SelectableOption(new Exception("ohai"), "ohai", ("test" -> "bam")),
         SHtml.SelectableOption(new Exception("obai"), "obai", ("other-test" -> "bam")),
@@ -482,7 +484,7 @@ class FieldSpec extends Specification {
         "still-other-test" -> "bam"
       )
     }
-    "mark as selected the default objects" in new SContext {
+    "mark as selected the default objects" in {
       val defaults = List(new Exception("ohai"), new Exception("slabai"))
       val objects = List(
         SHtml.SelectableOption(defaults(0), "ohai"),
@@ -521,7 +523,7 @@ class FieldSpec extends Specification {
         </li>
       </ul>
 
-    "only bind to checkboxes and labels in the markup" in new SContext {
+    "only bind to checkboxes and labels in the markup" in {
       val formField = multiSelectField[Exception]("li", objects, asCheckboxes = true)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -540,7 +542,7 @@ class FieldSpec extends Specification {
       // They should all have different values.
       (Set[String]() ++ inputs.map(_ \ "@value").collect { case Group(Seq(Text(value))) => value }).size must_== 3
     }
-    "carry any SelectableOption attributes into the resulting checkboxes" in new SContext {
+    "carry any SelectableOption attributes into the resulting checkboxes" in {
       val objects = List(
         SHtml.SelectableOption(new Exception("ohai"), "ohai", ("test" -> "bam")),
         SHtml.SelectableOption(new Exception("obai"), "obai", ("other-test" -> "bam")),
@@ -564,7 +566,7 @@ class FieldSpec extends Specification {
         "still-other-test" -> "bam"
       )
     }
-    "set the associated label's for attribute when an option has the id attribute set" in new SContext {
+    "set the associated label's for attribute when an option has the id attribute set" in {
       val objects = List(
         SHtml.SelectableOption(new Exception("ohai"), "ohai", ("id" -> "bam")),
         SHtml.SelectableOption(new Exception("obai"), "obai", ("other-test" -> "bam")),
@@ -584,7 +586,7 @@ class FieldSpec extends Specification {
         "for" -> "boom"
       ) \> "slabai"
     }
-    "mark as selected the default objects" in new SContext {
+    "mark as selected the default objects" in {
       val defaults = List(new Exception("ohai"), new Exception("slabai"))
       val objects = List(
         SHtml.SelectableOption(defaults(0), "ohai"),
@@ -621,7 +623,7 @@ class FieldSpec extends Specification {
       (new Exception("slabai"), "slabai")
     )
 
-    "replace the  element wholesale with a select element" in new SContext {
+    "replace the  element wholesale with a select element" in {
       val formField = multiSelectField[Exception](".boomdayada", objects)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -633,7 +635,7 @@ class FieldSpec extends Specification {
         "name" -> ".*"
       )
     }
-    "mark as selected the default objects" in new SContext {
+    "mark as selected the default objects" in {
       val defaults = List(new Exception("ohai"), new Exception("slabai"))
       val objects = List(
         (defaults(0), "ohai"),
@@ -672,7 +674,7 @@ class FieldSpec extends Specification {
         </li>
       </ul>
 
-    "only bind to checkboxes and labels in the markup" in new SContext {
+    "only bind to checkboxes and labels in the markup" in {
       val formField = multiSelectField[Exception]("li", objects, asCheckboxes = true)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -691,7 +693,7 @@ class FieldSpec extends Specification {
       // They should all have different values.
       (Set[String]() ++ inputs.map(_ \ "@value").collect { case Group(Seq(Text(value))) => value }).size must_== 3
     }
-    "mark as selected the default objects" in new SContext {
+    "mark as selected the default objects" in {
       val defaults = List(new Exception("ohai"), new Exception("slabai"))
       val objects = List(
         (defaults(0), "ohai"),
@@ -728,7 +730,7 @@ class FieldSpec extends Specification {
       "slabai"
     )
 
-    "replace the  element wholesale with a select element" in new SContext {
+    "replace the  element wholesale with a select element" in {
       val formField = multiSelectField[String](".boomdayada", objects)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -740,7 +742,7 @@ class FieldSpec extends Specification {
         "name" -> ".*"
       )
     }
-    "mark as selected the default objects" in new SContext {
+    "mark as selected the default objects" in {
       val formField = multiSelectField[String](".boomdayada", objects, List("ohai", "slabai"))
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -772,7 +774,7 @@ class FieldSpec extends Specification {
         </li>
       </ul>
 
-    "only bind to radio buttons and labels in the markup" in new SContext {
+    "only bind to radio buttons and labels in the markup" in {
       val formField = multiSelectField[String]("li", objects, asCheckboxes = true)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -791,7 +793,7 @@ class FieldSpec extends Specification {
       // They should all have different values.
       (Set[String]() ++ inputs.map(_ \ "@value").collect { case Group(Seq(Text(value))) => value }).size must_== 3
     }
-    "mark as selected the default objects" in new SContext {
+    "mark as selected the default objects" in {
       val formField = multiSelectField[String]("li", objects, List("ohai", "slabai"), asCheckboxes = true)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
@@ -816,7 +818,7 @@ class FieldSpec extends Specification {
   }
 
   "Checkbox fields with Boolean values" should {
-    "replace the element with a checkbox-hidden input pair" in new SContext {
+    "replace the element with a checkbox-hidden input pair" in {
       val formField = checkboxField(".boomdayada", false)
 
       val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>

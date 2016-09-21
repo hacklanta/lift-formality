@@ -18,7 +18,8 @@ resolvers += "Sonatype Snapshots Repository" at "http://oss.sonatype.org/content
 }
 
 libraryDependencies ++= Seq(
-  "org.specs2" %% "specs2-core" % "2.4.15" % "test"
+  "org.specs2" %% "specs2-core" % "3.8.5" % "test",
+  "org.specs2" %% "specs2-matcher-extra" % "3.8.5" % "test"
 )
 
 scalacOptions ++= Seq("-deprecation","-feature","-Xfatal-warnings")
