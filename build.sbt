@@ -45,8 +45,7 @@ pomExtra :=
     <name>Antonio Salazar Cardozo</name>
     <email>savedfastcool@gmail.com</email>
   </developer>
-</developers>
-
+</developers>;
 
 publishTo <<= version { (v: String) =>
   val nexus = "https://oss.sonatype.org/"
