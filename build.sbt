@@ -4,7 +4,7 @@ organization := "com.hacklanta"
 
 version := "0.4.0-SNAPSHOT"
 
-scalaVersion := "2.11.4"
+scalaVersion := "2.11.8"
 
 resolvers += "Sonatype Snapshots Repository" at "http://oss.sonatype.org/content/repositories/snapshots"
 
