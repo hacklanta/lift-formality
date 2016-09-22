@@ -1,0 +1,18 @@
+language: scala
+jdk:
+  - oraclejdk8
+
+scala:
+ - 2.11.8
+
+branches:
+  only:
+    - master
+
+notifications:
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/ab0619f0b7e5b623966a
+    on_success: always
+    on_failure: always
+    on_start: never
