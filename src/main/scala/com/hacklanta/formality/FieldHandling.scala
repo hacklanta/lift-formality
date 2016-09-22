@@ -159,8 +159,14 @@ abstract class BaseFieldHolder[
   protected def baseTransform: CssSel = {
     val functionId = generateFunctionIdAndHandler
 
-    (selector + " [name]") #> functionId &
-    (selector + " [value]") #> initialValue.map(serializeValue _)
+    val nameTransform = (selector + " [name]") #> functionId
+
+    initialValue.map { startValue =>
+      nameTransform &
+      (selector + " [value]") #> serializeValue(startValue)
+    } getOrElse {
+      nameTransform
+    }
   }
 
   /**
