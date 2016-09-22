@@ -22,6 +22,7 @@ class FieldGroupSpec extends Specification {
   "FieldGroups" should {
     val nameField = MockFieldHolder(Full("Stradivarius"))
     val ageField = MockFieldHolder(Full(25))
+    val emptyField = MockFieldHolder[String](Empty)
 
     "allow the caller to group multiple constituent fields" in {
       val fieldGroup =
@@ -81,11 +82,12 @@ class FieldGroupSpec extends Specification {
     "allow the caller to specify a converter that takes boxed field values and produces a Box" in {
       val fieldGroup =
         FieldGroupBase(None)
-          .withFields(nameField, ageField)
-          .withBoxedConverter { (name: Box[String], age: Box[Int]) =>
+          .withFields(nameField, ageField, emptyField)
+          .withBoxedConverter { (name: Box[String], age: Box[Int], empty: Box[String]) =>
             Full(
               (name must_== Full("Stradivarius")) and
-              (age must_== Full(25))
+              (age must_== Full(25)) and
+              (empty must_== Empty)
            )
           }
 
@@ -97,8 +99,8 @@ class FieldGroupSpec extends Specification {
     "reflect a caller-specified boxed converter's failure in the field group value" in {
       val failingFieldGroup =
         FieldGroupBase(None)
-          .withFields(nameField, ageField)
-          .withBoxedConverter { (name: Box[String], age: Box[Int]) =>
+          .withFields(nameField, ageField, emptyField)
+          .withBoxedConverter { (name: Box[String], age: Box[Int], empty: Box[String]) =>
             Failure("It's all gone wrong!")
           }
 
@@ -112,11 +114,17 @@ class FieldGroupSpec extends Specification {
   "FieldGroups with enough fields to trigger HList-only converters" should {
     val nameField = MockFieldHolder(Full("Stradivarius"))
     val ageField = MockFieldHolder(Full(25))
+    val emptyField = MockFieldHolder[String](Empty)
 
     val fieldGroup =
       FieldGroupBase(None).withFields(
         nameField, nameField, nameField, nameField, nameField, nameField, nameField, nameField, nameField, nameField, nameField,
         ageField, ageField, ageField, ageField, ageField, ageField, ageField, ageField, ageField, ageField, ageField, ageField)
+    val fieldGroupWithEmpty =
+      FieldGroupBase(None).withFields(
+        nameField, nameField, nameField, nameField, nameField, nameField, nameField, nameField, nameField, nameField, nameField,
+        ageField, ageField, ageField, ageField, ageField, ageField, ageField, ageField, ageField, ageField, ageField,
+        emptyField)
 
     "allow the caller to group more than 22 constituent fields" in {
       fieldGroup.value must beLike {
@@ -180,12 +188,12 @@ class FieldGroupSpec extends Specification {
 
     "allow the caller to specify a converter that takes an HList of boxed field values and produces a Box" in {
       val boxConvertibleFieldGroup =
-        fieldGroup
+        fieldGroupWithEmpty
           .withBoxedHlistConverter { boxedHlist =>
             Full(
               boxedHlist must beLike {
                 case name1 :+: name2 :+: name3 :+: name4 :+: name5 :+: name6 :+: name7 :+: name8 :+: name9 :+: name10 :+: name11 :+:
-                  age1 :+: age2 :+: age3 :+: age4 :+: age5 :+: age6 :+: age7 :+: age8 :+: age9 :+: age10 :+: age11 :+: age12 :+: HNil =>
+                  age1 :+: age2 :+: age3 :+: age4 :+: age5 :+: age6 :+: age7 :+: age8 :+: age9 :+: age10 :+: age11 :+: empty :+: HNil =>
                   name1 must_== Full("Stradivarius")
                   name2 must_== Full("Stradivarius")
                   name3 must_== Full("Stradivarius")
@@ -208,7 +216,7 @@ class FieldGroupSpec extends Specification {
                   age9 must_== Full(25)
                   age10 must_== Full(25)
                   age11 must_== Full(25)
-                  age12 must_== Full(25)
+                  empty must_== Empty
               }
             )
           }
@@ -220,7 +228,7 @@ class FieldGroupSpec extends Specification {
 
     "reflect a caller-specified boxed HList converter's failure in the field group value" in {
       val failingFieldGroup =
-        fieldGroup
+        fieldGroupWithEmpty
           .withBoxedHlistConverter { boxedHlist =>
             Failure("It's all gone wrong!")
           }
