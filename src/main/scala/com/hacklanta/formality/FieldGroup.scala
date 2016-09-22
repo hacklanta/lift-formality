@@ -18,16 +18,18 @@ object FieldGroup {
   def formalizeImpl(c: Context) = {
     import c.universe._
 
-    val (hlistType, hlistTypes) =
+    val (boxedHlistType, boxedHlistTypes, hlistType, hlistTypes) =
       c.prefix.actualType match {
-        case TypeRef(_, _, _ :: _ :: headValueType :: restValueTypes :: Nil) =>
+        case TypeRef(_, _, _ :: boxedValueTypes :: headValueType :: restValueTypes :: Nil) =>
           (
+            tq"$boxedValueTypes",
+            FormalityFormHelper.unwindHlistTypes(c)(boxedValueTypes),
             tq"net.liftweb.common.HLists.HCons[$headValueType, $restValueTypes]",
             headValueType :: FormalityFormHelper.unwindHlistTypes(c)(restValueTypes)
           )
 
         case TypeRef(_, thing, other) =>
-          (tq"net.liftweb.common.HLists.HNil", Nil)
+          (tq"net.liftweb.common.HLists.HNil", Nil, tq"net.liftweb.common.HLists.HNil", Nil)
       }
 
     if (hlistTypes.length > 22) {
@@ -43,6 +45,10 @@ object FieldGroup {
           def withConverterFn[T](converter: ($hlistType)=>net.liftweb.common.Box[T]) = {
             withHlistConverter[T](converter)
           }
+
+          def withBoxedConverterFn[T](converter: ($boxedHlistType)=>net.liftweb.common.Box[T]) = {
+            withBoxedHlistConverter[T](converter)
+          }
         }
       }"""
     } else {
@@ -51,7 +57,7 @@ object FieldGroup {
           .reverse
           .foldLeft((q"HNil": c.Tree, List[Ident]())) {
             case ((typeMatch, parameters), _) =>
-              val name = TermName(c.freshName("fieldValue$"))
+              val name = TermName(c.freshName("boxedFieldValue$"))
 
               (pq""":+:($name, $typeMatch)""", q"$name" :: parameters)
           }
@@ -72,7 +78,14 @@ object FieldGroup {
             })
           }
 
-          def withUnboxedConverterFn[T](converter: (..$hlistTypes)=>T) = {
+          def withBoxedConverterFn[T](converter: (..$boxedHlistTypes)=>net.liftweb.common.Box[T]) = {
+            withBoxedHlistConverter[T]({
+              case $matcher =>
+                converter.apply(..$parameterList)
+            })
+          }
+
+          def asFn[T](converter: (..$hlistTypes)=>T) = {
             withHlistConverter[T]({
               case $matcher =>
                 net.liftweb.common.Full(converter.apply(..$parameterList))
@@ -89,10 +102,16 @@ object FieldGroup {
     q"${formalizeImpl(c)}.withConverterFn($newConverter)"
   }
 
-  def withUnboxedConverterImpl[T](c: Context)(newConverter: c.Expr[T]) = {
+  def withBoxedConverterImpl[T](c: Context)(newConverter: c.Expr[T]) = {
     import c.universe._
 
-    q"${formalizeImpl(c)}.withUnboxedConverterFn($newConverter)"
+    q"${formalizeImpl(c)}.withBoxedConverterFn($newConverter)"
+  }
+
+  def asImpl[T](c: Context)(newConverter: c.Expr[T]) = {
+    import c.universe._
+
+    q"${formalizeImpl(c)}.asFn($newConverter)"
   }
 
   def apply() = {
@@ -111,7 +130,7 @@ case class FieldGroupBase private[formality](scopingSelector: Option[String]) {
       HNil
     ](
       scopingSelector,
-      converter = Full.apply _,
+      converter = Left(Full.apply _),
       computeValues = () => {
         (field.value :+: HNil, field.value: CombinableBoxie.CombinableBox[FieldValueType, HNil])
       },
@@ -128,17 +147,23 @@ case class FieldGroup[
   RestFieldValueTypes <: HList
 ](
   scopingSelector: Option[String],
-  converter: (HeadFieldValueType :+: RestFieldValueTypes)=>Box[CombinedType],
+  converter: Either[(HeadFieldValueType :+: RestFieldValueTypes)=>Box[CombinedType],(FieldBoxList)=>Box[CombinedType]],
   computeValues: ()=>(FieldBoxList, CombinableBoxie.CombinableBox[HeadFieldValueType, RestFieldValueTypes]),
   bindFields: CssSel
 ) extends FieldHolderBase[CombinedType] {
   def withHlistConverter[T](newConverter: (HeadFieldValueType :+: RestFieldValueTypes)=>Box[T]): FieldGroup[T, FieldBoxList, HeadFieldValueType, RestFieldValueTypes] = {
     copy[T, FieldBoxList, HeadFieldValueType, RestFieldValueTypes](
-      converter = newConverter
+      converter = Left(newConverter)
+    )
+  }
+  def withBoxedHlistConverter[T](newConverter: (FieldBoxList)=>Box[T]): FieldGroup[T, FieldBoxList, HeadFieldValueType, RestFieldValueTypes] = {
+    copy[T, FieldBoxList, HeadFieldValueType, RestFieldValueTypes](
+      converter = Right(newConverter)
     )
   }
   def withConverter[T](newConverter: T): FieldGroup[_,_,_,_] = macro FieldGroup.withConverterImpl[T]
-  def as[T](newConverter: T): FieldGroup[_,_,_,_] = macro FieldGroup.withUnboxedConverterImpl[T]
+  def withBoxedConverter[T](newConverter: T): FieldGroup[_,_,_,_] = macro FieldGroup.withBoxedConverterImpl[T]
+  def as[T](newConverter: T): FieldGroup[_,_,_,_] = macro FieldGroup.asImpl[T]
 
   def formalize: FieldGroup[_,_,_,_] = macro FieldGroup.formalizeImpl
 
@@ -149,7 +174,7 @@ case class FieldGroup[
       FieldValueType,
       HeadFieldValueType :+: RestFieldValueTypes
     ](
-      converter = Full.apply _,
+      converter = Left(Full.apply _),
       computeValues = () => {
         val (boxes, combinedResult) = this.computeValues()
         (field.value :+: boxes, field.value :&: combinedResult)
@@ -160,13 +185,19 @@ case class FieldGroup[
   def withFields(fields: FieldHolderBase[_]*): FieldGroup[_, _, _, _] = macro FieldGroup.withFieldsImpl
 
   val fieldValue = new FieldValueVar[CombinedType]({
-    val (_, valueResult) = computeValues()
+    val (boxedValueResult, valueResult) = computeValues()
 
-    valueResult.rhs match {
-      case Right(values) =>
-        converter(values)
-      case Left(failures) =>
-        ParamFailure("Failed to build combined group.", Empty, Empty, CombinableBoxie.FailureList(failures))
+    converter match {
+      case Left(unboxedConverter) =>
+        valueResult.rhs match {
+          case Right(values) =>
+            unboxedConverter(values)
+          case Left(failures) =>
+            ParamFailure("Failed to build combined group.", Empty, Empty, CombinableBoxie.FailureList(failures))
+        }
+
+      case Right(boxedConverter) =>
+        boxedConverter(boxedValueResult)
     }
   })
   def value = fieldValue.is

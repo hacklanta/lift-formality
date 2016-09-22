@@ -77,5 +77,21 @@ class FieldGroupSpec extends Specification {
           person.age must_== 25
       }
     }
+
+    "allow the caller to specify a converter that takes boxed field values and produces a Box" in {
+      val fieldGroup =
+        FieldGroupBase(None)
+          .withFields(nameField, ageField)
+          .withBoxedConverter { (name: Box[String], age: Box[Int]) =>
+            Full(
+              (name must_== Full("Stradivarius")) and
+              (age must_== Full(25))
+           )
+          }
+
+      fieldGroup.value must beLike {
+        case Full(matchResult) => matchResult
+      }
+    }
   }
 }
