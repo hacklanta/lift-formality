@@ -30,6 +30,12 @@ object FieldGroup {
 
         case TypeRef(_, thing, other) =>
           (tq"net.liftweb.common.HLists.HNil", Nil, tq"net.liftweb.common.HLists.HNil", Nil)
+
+        case other =>
+          c.abort(
+            c.enclosingPosition,
+            "Couldn't fully resolve field group types; please make sure you declare the field group and converter in the same expression."
+          )
       }
 
     if (hlistTypes.length > 22) {
