@@ -41,15 +41,7 @@ object FieldGroup {
           initialGroup.converter,
           initialGroup.computeValues,
           initialGroup.bindFields
-        ) {
-          def withConverterFn[T](converter: ($hlistType)=>net.liftweb.common.Box[T]) = {
-            withHlistConverter[T](converter)
-          }
-
-          def withBoxedConverterFn[T](converter: ($boxedHlistType)=>net.liftweb.common.Box[T]) = {
-            withBoxedHlistConverter[T](converter)
-          }
-        }
+        )
       }"""
     } else {
       val (matcher, parameterList) =
