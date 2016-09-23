@@ -308,6 +308,40 @@ Note that failures at the group conversion level don't trigger `S.error`, since
 there's no concrete field to associate the failure with. You can do your own
 handling of the failure in the `onFailure` handler.
 
+#### Field groups with boxed converters
+
+Field groups can also use a converter that takes the boxed values of the
+fields that it is made up of. This can be used, for example, to make choices
+between two fields that supply the same data. Let's take as an example an
+upload form that accepts a document in PDF format or a pasted text file:
+
+```scala
+  val fileNameField = field[String](".file-name")
+  val pastedTextField = field[String](".pasted-text")
+  val uploadedFileField = fileUploadField(".pasted-text")
+
+  val uploadForm =
+    form withFields(
+      fileNameField,
+      fieldGroup.withFields(
+        pastedTextField,
+        uploadedFileField
+      ).withBoxedConverter { (text: Box[String], file: Box[FileParamHolder]) =>
+        text.map(_.getBytes("UTF-8")) or file.data
+      }
+    ).onSuccess { (fileName: String, fileData: Array[Data]))
+      DbFile.create(fileName, fileData)
+    }
+```
+
+Above, we have a form with a field for the file's name, and then a group that
+encloses the pasted text and the file upload. The converter receives both as
+boxed values, which will be `Empty` if the user didn't specify anything for the
+fields in question. The converter then uses the pasted text if it was specified,
+or if not chooses the file data. The success handler then only sees two parameters:
+the files name, and the final data array that represents its contents, which we've
+resolved in the field group converter.
+
 #### Scoping field groups
 
 You can also add a scope to a field group. This is a CSS selector that ensures
