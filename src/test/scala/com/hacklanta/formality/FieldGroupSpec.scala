@@ -15,8 +15,10 @@ import HListies.HList
 import Formality._
 
 class FieldGroupSpec extends Specification {
-  case class MockFieldHolder[T](value: Box[T]) extends FieldHolderBase[T] {
-    val binder: CssSel = "nothing" #> ClearNodes
+  case class MockFieldHolder[T](value: Box[T], testBinder: Option[CssSel] = None) extends FieldHolderBase[T] {
+    val binder: CssSel = {
+      testBinder getOrElse ("nothing" #> ClearNodes)
+    }
   }
 
   "FieldGroups" should {
@@ -237,6 +239,54 @@ class FieldGroupSpec extends Specification {
         case Failure(message, Empty, Empty) =>
           message must_== "It's all gone wrong!"
       }
+    }
+  }
+
+  "FieldGroups when binding their contents" should {
+    val nameField = MockFieldHolder(Full("Stradivarius"), Some(".name [data-test]" #> "name"))
+    val ageField = MockFieldHolder(Full(25), Some(".age [data-test]" #> "age"))
+
+    val testTemplate =
+      <form id="container">
+        <fieldset id="user">
+          <legend>User Information</legend>
+          <label>Name: <input class="name" /></label>
+          <label>Age: <input type="number" class="age" /></label>
+        </fieldset>
+        <fieldset id="parent">
+          <legend>Parent Information</legend>
+          <label>Name: <input class="name" /></label>
+          <label>Age: <input type="number" class="age" /></label>
+        </fieldset>
+      </form>
+
+    "pass through field transformations if no scoping selector is specified" in {
+      val fieldGroup =
+        FieldGroupBase(None).withFields(nameField, ageField)
+
+      val boundResult = fieldGroup.binder(testTemplate)
+      val boundInputs = (boundResult \\ "input").filter(_.attribute("data-test").isDefined)
+
+      boundInputs.length must_== 4
+      boundInputs.filter(_.attribute("data-test").map(_.text) == Some("name")).length must_== 2
+      boundInputs.filter(_.attribute("data-test") .map(_.text)== Some("age")).length must_== 2
+    }
+
+    "scope field transformations to a scoping selector when specified" in {
+      val fieldGroup =
+        FieldGroupBase(Some("#user")).withFields(nameField, ageField)
+
+      val boundResult = fieldGroup.binder(testTemplate)
+      val userContainer = (boundResult \\ "fieldset").filter(_.attribute("id").map(_.text) == Some("user"))
+      val parentContainer = (boundResult \\ "fieldset").filter(_.attribute("id").map(_.text) == Some("parent"))
+
+      val userInputs = (userContainer \\ "input").filter(_.attribute("data-test").isDefined)
+      val parentInputs = (parentContainer \\ "input").filter(_.attribute("data-test").isDefined)
+
+      parentInputs must beEmpty
+      userInputs.length must_== 2
+      userInputs.filter(_.attribute("data-test").map(_.text) == Some("name")).length must_== 1
+      userInputs.filter(_.attribute("data-test").map(_.text) == Some("age")).length must_== 1
     }
   }
 }
