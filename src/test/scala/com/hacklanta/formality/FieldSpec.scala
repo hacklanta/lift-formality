@@ -13,7 +13,7 @@ import net.liftweb.util._
 import Formality._
 
 class FieldSpec extends Specification {
-  val templateElement = <div class="boomdayada boomdayadan" data-test-attribute="bam">Here's a test!</div>
+  val templateElement = <div class="boomdayada boomdayadan" data-test-attribute="bam" value="markup-value">Here's a test!</div>
 
   "Simple fields with no initial value" should {
     "only bind the name attribute" in new SScope {
@@ -25,9 +25,9 @@ class FieldSpec extends Specification {
         "div",
         "class" -> "boomdayada boomdayadan",
         "data-test-attribute" -> "bam",
+        "value" -> "markup-value",
         "name" -> ".*"
       )
-      (resultingMarkup \ "div" \ "@value").text must_== ""
     }
   }
   
