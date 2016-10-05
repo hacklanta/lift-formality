@@ -149,5 +149,51 @@ class FormSubmissionSpec extends Specification {
           validationErrors must_== List("error", "second error", "other error")
       }
     }
+
+    "call onSubmission handlers whether or not the form fails" in new IntFieldScope {
+      var didRunFailed = false
+      var didRunSuccess = false
+
+      val validatingField =
+        formField ?
+          { incoming: Int => Full("error") }
+      val testFailedForm =
+        form.withField(validatingField).formalize onSubmission { (field: Box[Int]) =>
+          didRunFailed = true
+        }
+      val testSuccessForm =
+        form.withField(formField).formalize onSubmission { (field: Box[Int]) =>
+          didRunSuccess = true
+        }
+
+      bindAndSubmitForm(testFailedForm.binder)
+      bindAndSubmitForm(testSuccessForm.binder)
+
+      didRunFailed must_== true
+      didRunSuccess must_== true
+    }
+
+    "call onSubmission handlers even for AJAX forms" in new IntFieldScope {
+      var didRunFailed = false
+      var didRunSuccess = false
+
+      val validatingField =
+        formField ?
+          { incoming: Int => Full("error") }
+      val testFailedForm =
+        form.withField(validatingField).ajaxFormalize onSubmission { (field: Box[Int]) =>
+          didRunFailed = true
+        }
+      val testSuccessForm =
+        form.withField(formField).ajaxFormalize onSubmission { (field: Box[Int]) =>
+          didRunSuccess = true
+        }
+
+      bindAndSubmitForm(testFailedForm.binder)
+      bindAndSubmitForm(testSuccessForm.binder)
+
+      didRunFailed must_== true
+      didRunSuccess must_== true
+    }
   }
 }

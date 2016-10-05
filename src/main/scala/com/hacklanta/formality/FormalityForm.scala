@@ -165,7 +165,7 @@ abstract class FormalityForm[
   FunctionType,
   BoxedFunctionType
 ] {
-  def onSubmission(handler: BoxedFunctionType): StandardFormalityForm[FieldList, FieldBoxList, FieldValueList, FunctionType, BoxedFunctionType] = macro FormalityFormHelper.onSubmissionImpl[BoxedFunctionType, FieldBoxList, RequestResultType]
+  def onSubmission(handler: BoxedFunctionType): FormalityForm[FieldList, FieldBoxList, FieldValueList, RequestResultType, FunctionType, BoxedFunctionType] = macro FormalityFormHelper.onSubmissionImpl[BoxedFunctionType, FieldBoxList]
   def onSubmissionHList(handler: (FieldBoxList)=>Unit): FormalityForm[FieldList,FieldBoxList,FieldValueList,RequestResultType, FunctionType, BoxedFunctionType]
 
   def onSuccess(handler: FunctionType): FormalityForm[FieldList,FieldBoxList,FieldValueList,RequestResultType, FunctionType, BoxedFunctionType] = macro FormalityFormHelper.onSuccessImpl[FunctionType, FieldValueList, RequestResultType]
@@ -198,10 +198,10 @@ object FormalityFormHelper {
     }
   }
 
-  def onSubmissionImpl[T: c.WeakTypeTag, FieldList: c.WeakTypeTag, ReturnType: c.WeakTypeTag](c: Context)(handler: c.Expr[T]) = {
+  def onSubmissionImpl[T: c.WeakTypeTag, FieldList: c.WeakTypeTag](c: Context)(handler: c.Expr[T]) = {
     import c.universe._
 
-    buildSubmissionCopyTree[T, FieldList, ReturnType](c)(handler) { formTypeParameters =>
+    buildSubmissionCopyTree[T, FieldList, Unit](c)(handler) { formTypeParameters =>
       q"""
       startingForm.copy[..$formTypeParameters](
         submissionHandlers = handler :: startingForm.submissionHandlers
@@ -355,7 +355,10 @@ object FormalityFormHelper {
           TypeTree(c.weakTypeOf[RestFieldValueTypes])
         )
       )
+    // return type for success/failure handlers
     val returnTypeTree = TypeTree(c.weakTypeOf[ReturnType])
+    // return type for submission handler---always Unit
+    val unitTypeTree = TypeTree(c.weakTypeOf[Unit])
 
     // Both function types degrade to take HLists when we exceed the available
     // function arities.
@@ -375,12 +378,12 @@ object FormalityFormHelper {
       if (fieldBoxTypeList.length > 22) {
         AppliedTypeTree(
           Ident(TypeName("Function1")),
-          List(TypeTree(c.weakTypeOf[FieldBoxTypes]), returnTypeTree)
+          List(TypeTree(c.weakTypeOf[FieldBoxTypes]), unitTypeTree)
         )
       } else {
         AppliedTypeTree(
           Ident(TypeName("Function" + fieldBoxTypeList.length)),
-          fieldBoxTypeList.map { tpe => TypeTree(tpe) } :+ returnTypeTree
+          fieldBoxTypeList.map { tpe => TypeTree(tpe) } :+ unitTypeTree
         )
       }
 
