@@ -29,6 +29,7 @@ class ValidationSpec extends Specification {
 
       handlerRan must_== false
     }
+
     "have no validation errors on successful submission" in new IntFieldScope {
       var handlerRan = false
 
@@ -42,6 +43,7 @@ class ValidationSpec extends Specification {
       handlerRan must_== true
       S.errors must haveLength(0)
     }
+
     "spit out a validation error if there is one" in new IntFieldScope {
       val validatingField = formField ? { incoming: Int => Full("error") }
       val testForm = form.withField(validatingField).formalize
@@ -50,6 +52,7 @@ class ValidationSpec extends Specification {
 
       S.errors must haveLength(1)
     }
+
     "associate the validation error with the field name" in new IntFieldScope {
       val validatingField = formField ? { incoming: Int => Full("error") }
       val testForm = form.withField(validatingField).formalize
@@ -64,6 +67,7 @@ class ValidationSpec extends Specification {
           } must haveLength(1)
       }
     }
+
     "associate multiple validation errors with their field name" in new IntFieldScope {
       val validatingField =
         formField ?
@@ -82,6 +86,7 @@ class ValidationSpec extends Specification {
           } must haveLength(3)
       }
     }
+
     "associate validation errors with multiple field names if needed" in new IntFieldScope {
       val validatingField =
         formField ?
@@ -117,6 +122,7 @@ class ValidationSpec extends Specification {
           } must haveLength(2)
       }
     }
+
     "provide the validation errors in the failure handler as a ParamFailure param" in new IntFieldScope {
       var failedValues: List[Failure] = Nil
 
@@ -135,6 +141,26 @@ class ValidationSpec extends Specification {
         case List(ParamFailure(_, _, _, validationErrors)) =>
           validationErrors must_== List("error", "second error", "other error")
       }
+    }
+
+    "invoke boxed validations even if there is no value for the field" in new IntFieldScope {
+      override def bindForm(binder: (NodeSeq)=>NodeSeq): NodeSeq = {
+        val markup: NodeSeq = binder(
+          <form>{
+            (inputWithId("submit-field") % ("type" -> "submit"))
+          }</form>
+        )
+
+        markup
+      }
+
+      var validatorRanTimes = 0
+      val validatingField = formField ? { incoming: Box[Int] => validatorRanTimes += 1; Empty }
+      val testForm = form.withField(validatingField).formalize
+
+      bindAndSubmitForm(testForm.binder)
+
+      validatorRanTimes must_== 1
     }
   }
 }
