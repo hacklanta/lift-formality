@@ -37,7 +37,7 @@ trait FieldHolderBase[FieldValueType] {
    *    String to the FieldValueType) failed. In case of a validation
    *    failure, this should be a ParamFailure whose param is the list of
    *    validation failures (a List[String])
-   * 
+   *
    * - If it is Full, it contains the value for the current form
    *   submission.
    */
@@ -98,6 +98,7 @@ abstract class BaseFieldHolder[
   selector: String,
   initialValue: Box[FieldValueType],
   validations: List[Validation[ValidationType]],
+  boxedValidations: List[Validation[Box[ValidationType]]],
   eventHandlers: List[EventHandler[EventHandlerType]]
 )(
   implicit eventHandlerValueConverter: (String)=>Box[FieldValueType]
@@ -126,6 +127,25 @@ abstract class BaseFieldHolder[
 
   /**
    * This should return a copy of this BaseFieldHolder with the
+   * specified validation attached. Left abstract because by far
+   * the best implementation is using a case class copy method.
+   */
+  def validatingWith(boxedValidation: Validation[Box[ValidationType]])(implicit dummy: DummyImplicit): BaseFieldHolder[IncomingValueType, FieldValueType, ValidationType, EventHandlerType]
+  /**
+   * Adds the given boxed validation to the list of validations run on this
+   * field at form processing time. Note that validations may add
+   * attributes to the field to indicate on the client side what types of
+   * validations are expected; see the `[[Validation]]` trait for more.
+   *
+   * Note that `FieldHolder`s are immutable; this returns a copy of this
+   * `FieldHolder` with an updated validation list.
+   *
+   * Aliased as `[[validatingWith]]` for folks who don't like operators.
+   */
+  def ?(boxedValidation: Validation[Box[ValidationType]])(implicit dummy: DummyImplicit) = validatingWith(boxedValidation)
+
+  /**
+   * This should return a copy of this `BaseFieldHolder` with the
    * specified event handler attached. Left abstract because by far the
    * best implementation is using a case class copy method.
    */
@@ -133,12 +153,12 @@ abstract class BaseFieldHolder[
   /**
    * Adds the given event handler to the list of event handlers this field
    * will have on the client. See EventHandler for more. Meant to be
-   * used with Formality.on for fluency (e.g., field -> on("change", checkStuff _)).
+   * used with Formality.on for fluency (e.g., `field -> on("change", checkStuff _)`).
    *
-   * Note that FieldHolders are immutable; this returns a copy of this
-   * FieldHolder with an updated event handler list.
+   * Note that `FieldHolder`s are immutable; this returns a copy of this
+   * `FieldHolder` with an updated event handler list.
    *
-   * Aliased as handlingEvent for folks who don't like operators.
+   * Aliased as `[[handlingEvent]]` for folks who don't like operators.
    */
   def ->(eventHandler: EventHandler[EventHandlerType]) = handlingEvent(eventHandler)
 
@@ -228,16 +248,22 @@ case class SimpleFieldHolder[
   selector: String,
   initialValue: Box[FieldValueType],
   validations: List[Validation[ValidationType]],
+  boxedValidations: List[Validation[Box[ValidationType]]],
   eventHandlers: List[EventHandler[EventHandlerType]]
 )(
   implicit valueConverter: (String)=>Box[FieldValueType],
            valueSerializer: (FieldValueType)=>String
-) extends BaseFieldHolder[String, FieldValueType, ValidationType, EventHandlerType](selector, initialValue, validations, eventHandlers) {
+) extends BaseFieldHolder[String, FieldValueType, ValidationType, EventHandlerType](
+            selector, initialValue, validations, boxedValidations, eventHandlers
+          ) {
   protected def convertValue(incomingValue: String) = valueConverter(incomingValue)
   protected def serializeValue(value: FieldValueType) = valueSerializer(value)
 
   def validatingWith(validation: Validation[ValidationType]) = {
     this.copy(validations = validation :: validations)
+  }
+  def validatingWith(boxedValidation: Validation[Box[ValidationType]])(implicit dummy: DummyImplicit) = {
+    this.copy(boxedValidations = boxedValidation :: boxedValidations)
   }
   def handlingEvent(eventHandler: EventHandler[EventHandlerType]) = {
     this.copy(eventHandlers = eventHandler :: eventHandlers)
@@ -313,10 +339,11 @@ case class SelectFieldHolder[
   initialValue: Box[FieldValueType],
   options: List[SelectableOption[FieldValueType]],
   validations: List[Validation[ValidationType]],
+  boxedValidations: List[Validation[Box[ValidationType]]],
   eventHandlers: List[EventHandler[EventHandlerType]],
   asRadioButtons: Boolean
 ) extends BaseFieldHolder[String, FieldValueType, ValidationType, EventHandlerType](
-            selector, initialValue, validations, eventHandlers
+            selector, initialValue, validations, boxedValidations, eventHandlers
           )(
             eventHandlerValueConverter = { eventHandlingValue: String => Empty /* we don't get file values for event handlers */ }
           ) {
@@ -348,6 +375,9 @@ case class SelectFieldHolder[
 
   def validatingWith(validation: Validation[ValidationType]) = {
     this.copy(validations = validation :: validations)
+  }
+  def validatingWith(boxedValidation: Validation[Box[ValidationType]])(implicit dummy: DummyImplicit) = {
+    this.copy(boxedValidations = boxedValidation :: boxedValidations)
   }
   def handlingEvent(eventHandler: EventHandler[EventHandlerType]) = {
     this.copy(eventHandlers = eventHandler :: eventHandlers)
@@ -494,10 +524,11 @@ case class MultiSelectFieldHolder[
   initialValues: List[FieldValueType],
   options: List[SelectableOption[FieldValueType]],
   validations: List[Validation[List[ValidationType]]],
+  boxedValidations: List[Validation[Box[List[ValidationType]]]],
   eventHandlers: List[EventHandler[List[EventHandlerType]]],
   asCheckboxes: Boolean
 ) extends BaseFieldHolder[String, List[FieldValueType], List[ValidationType], List[EventHandlerType]](
-            selector, Full(initialValues), validations, eventHandlers
+            selector, Full(initialValues), validations, boxedValidations, eventHandlers
           )(
             eventHandlerValueConverter = { eventHandlingValue: String => Empty /* we don't get file values for event handlers */ }
           ) {
@@ -542,6 +573,9 @@ case class MultiSelectFieldHolder[
 
   def validatingWith(validation: Validation[List[ValidationType]]) = {
     this.copy(validations = validation :: validations)
+  }
+  def validatingWith(boxedValidation: Validation[Box[List[ValidationType]]])(implicit dummy: DummyImplicit) = {
+    this.copy(boxedValidations = boxedValidation :: boxedValidations)
   }
   def handlingEvent(eventHandler: EventHandler[List[EventHandlerType]]) = {
     this.copy(eventHandlers = eventHandler :: eventHandlers)
@@ -660,9 +694,10 @@ case class CheckboxFieldHolder(
   selector: String,
   initialValue: Boolean,
   validations: List[Validation[Boolean]],
+  boxedValidations: List[Validation[Box[Boolean]]],
   eventHandlers: List[EventHandler[Boolean]]
 ) extends BaseFieldHolder[String, Boolean, Boolean, Boolean](
-            selector, Full(initialValue), validations, eventHandlers
+            selector, Full(initialValue), validations, boxedValidations, eventHandlers
           )(
             eventHandlerValueConverter = (incomingValue: String) => Full(toBoolean(incomingValue))
           ) {
@@ -678,6 +713,9 @@ case class CheckboxFieldHolder(
 
   def validatingWith(validation: Validation[Boolean]) = {
     this.copy(validations = validation :: validations)
+  }
+  def validatingWith(boxedValidation: Validation[Box[Boolean]])(implicit dummy: DummyImplicit) = {
+    this.copy(boxedValidations = boxedValidation :: boxedValidations)
   }
   def handlingEvent(eventHandler: EventHandler[Boolean]) = {
     this.copy(eventHandlers = eventHandler :: eventHandlers)
@@ -741,11 +779,12 @@ case class FileFieldHolder[
 ](
   selector: String,
   validations: List[Validation[ValidationType]],
+  boxedValidations: List[Validation[Box[ValidationType]]],
   eventHandlers: List[EventHandler[EventHandlerType]]
 )(
   implicit valueConverter: (FileParamHolder)=>Box[FieldValueType]
 ) extends BaseFieldHolder[FileParamHolder, FieldValueType, ValidationType, EventHandlerType](
-            selector, Empty, validations, eventHandlers
+            selector, Empty, validations, boxedValidations, eventHandlers
           )(
             eventHandlerValueConverter = { eventHandlingValue: String => Empty /* we don't get file values for event handlers */ }
           ) {
@@ -754,6 +793,9 @@ case class FileFieldHolder[
 
   def validatingWith(validation: Validation[ValidationType]) = {
     this.copy(validations = validation :: validations)
+  }
+  def validatingWith(boxedValidation: Validation[Box[ValidationType]])(implicit dummy: DummyImplicit) = {
+    this.copy(boxedValidations = boxedValidation :: boxedValidations)
   }
   def handlingEvent(eventHandler: EventHandler[EventHandlerType]) = {
     this.copy(eventHandlers = eventHandler :: eventHandlers)

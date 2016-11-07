@@ -10,18 +10,18 @@ import net.liftweb.util._
 
 object Formality extends FieldValueHelpers {
   def field[T](selector: String, initialValue: T)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): SimpleFieldHolder[T, T, T] = {
-    SimpleFieldHolder(selector, Full(initialValue), Nil, Nil)(valueConverter, valueSerializer)
+    SimpleFieldHolder(selector, Full(initialValue), Nil, Nil, Nil)(valueConverter, valueSerializer)
   }
   def field[T](selector: String)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): SimpleFieldHolder[T, T, T] = {
-    SimpleFieldHolder[T,T,T](selector, Empty, Nil, Nil)(valueConverter, valueSerializer)
+    SimpleFieldHolder[T,T,T](selector, Empty, Nil, Nil, Nil)(valueConverter, valueSerializer)
   }
 
   // Basic file upload field, spits out a FileParamHolder.
   def fileUploadField(selector: String): FileFieldHolder[FileParamHolder, FileParamHolder, FileParamHolder] = {
-    FileFieldHolder(selector, Nil, Nil)(fph => Full(fph))
+    FileFieldHolder(selector, Nil, Nil, Nil)(fph => Full(fph))
   }
   def typedFileUploadField[T](selector: String)(implicit valueConverter: (FileParamHolder)=>Box[T]): FileFieldHolder[T,T,T] = {
-    FileFieldHolder(selector, Nil, Nil)(valueConverter)
+    FileFieldHolder(selector, Nil, Nil, Nil)(valueConverter)
   }
 
   // Basic  select fields.
@@ -36,7 +36,7 @@ object Formality extends FieldValueHelpers {
     selectField[T](selector, values, default, false)
   }
   def selectField[T](selector: String, values: List[SelectableOption[T]], default: Box[T], asRadioButtons: Boolean): SelectFieldHolder[T,T,T] = {
-    SelectFieldHolder[T,T,T](selector, default, values, Nil, Nil, asRadioButtons)
+    SelectFieldHolder[T,T,T](selector, default, values, Nil, Nil, Nil, asRadioButtons)
   }
   def selectField[T](selector: String, values: List[(T, String)])(implicit dummy: DummyImplicit): SelectFieldHolder[T,T,T] = {
     selectField[T](selector, values.map(value => SelectableOption(value._1, value._2)), false)
@@ -71,7 +71,7 @@ object Formality extends FieldValueHelpers {
     multiSelectField[T](selector, values, defaults, false)
   }
   def multiSelectField[T](selector: String, values: List[SelectableOption[T]], defaults: List[T], asCheckboxes: Boolean): MultiSelectFieldHolder[T,T,T] = {
-    MultiSelectFieldHolder[T,T,T](selector, defaults, values, Nil, Nil, asCheckboxes)
+    MultiSelectFieldHolder[T,T,T](selector, defaults, values, Nil, Nil, Nil, asCheckboxes)
   }
   def multiSelectField[T](selector: String, values: List[(T, String)])(implicit dummy: DummyImplicit): MultiSelectFieldHolder[T,T,T] = {
     multiSelectField[T](selector, values.map(value => SelectableOption(value._1, value._2)))
@@ -99,7 +99,7 @@ object Formality extends FieldValueHelpers {
   }
 
   def checkboxField(selector: String, default: Boolean = false) = {
-    CheckboxFieldHolder(selector, default, Nil, Nil)
+    CheckboxFieldHolder(selector, default, Nil, Nil, Nil)
   }
 
   def on[T](eventName: String, handler: (T)=>JsCmd) = EventHandler[T](eventName, handler)
