@@ -143,24 +143,69 @@ class ValidationSpec extends Specification {
       }
     }
 
-    "invoke boxed validations even if there is no value for the field" in new IntFieldScope {
-      override def bindForm(binder: (NodeSeq)=>NodeSeq): NodeSeq = {
-        val markup: NodeSeq = binder(
-          <form>{
-            (inputWithId("submit-field") % ("type" -> "submit"))
-          }</form>
-        )
-
-        markup
+    "handle boxed validations even if there is no value for the field" in new IntFieldScope {
+      override def parametersForForm(intFieldName: Option[String], intFieldValue: String) = {
+        Nil
       }
 
       var validatorRanTimes = 0
-      val validatingField = formField ? { incoming: Box[Int] => validatorRanTimes += 1; Empty }
-      val testForm = form.withField(validatingField).formalize
+      var seenFailures = List[Failure]()
 
-      bindAndSubmitForm(testForm.binder)
+      val validatingField = formField ? { incoming: Box[Int] =>
+        validatorRanTimes += 1
+        Full("had an issue")
+      }
+      val testForm = form.withField(validatingField).formalize onFailure {
+        case failures =>
+          seenFailures = failures
+      }
+
+      val fieldName = bindAndSubmitForm(testForm.binder)
 
       validatorRanTimes must_== 1
+      seenFailures.length must_== 1
+      seenFailures must beLike {
+        case List(ParamFailure(message, _, _, param)) =>
+          message must_== "Empty field failed validation."
+          param must_== List("had an issue")
+      }
+
+      fieldName must beLike {
+        case Some(fieldName) =>
+          S.errors collect {
+            case (error, Full(name)) if fieldName == name =>
+              error
+          } must haveLength(1)
+      }
+    }
+
+    "handle boxed validations even if the field is submitted" in new IntFieldScope {
+      var seenFailures = List[Failure]()
+
+      val validatingField = formField ? { incoming: Box[Int] =>
+        Full("had an issue with " + incoming)
+      }
+      val testForm = form.withField(validatingField).formalize onFailure {
+        case failures =>
+          seenFailures = failures
+      }
+
+      val fieldName = bindAndSubmitForm(testForm.binder)
+
+      seenFailures.length must_== 1
+      seenFailures must beLike {
+        case List(ParamFailure(message, _, _, param)) =>
+          message must_== "5 failed validations."
+          param must_== List("had an issue with Full(5)")
+      }
+
+      fieldName must beLike {
+        case Some(fieldName) =>
+          S.errors collect {
+            case (error, Full(name)) if fieldName == name =>
+              error
+          } must haveLength(1)
+      }
     }
   }
 }

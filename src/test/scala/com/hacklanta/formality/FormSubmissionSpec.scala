@@ -43,7 +43,7 @@ class FormSubmissionSpec extends Specification {
         failedValues = failures
       }
 
-      bindAndSubmitForm(testForm.binder, formFieldValue = Some("bad int"))
+      bindAndSubmitForm(testForm.binder, formFieldValue = "bad int")
 
       processedValue must_== -1
       failedValues must beLike {
@@ -58,7 +58,7 @@ class FormSubmissionSpec extends Specification {
         failedValues = failures
       }
 
-      bindAndSubmitForm(testForm.binder, formFieldValue = Some("bad int"))
+      bindAndSubmitForm(testForm.binder, formFieldValue = "bad int")
 
       failedValues must beLike {
         case List(ParamFailure(_, _, _, fieldValue)) =>

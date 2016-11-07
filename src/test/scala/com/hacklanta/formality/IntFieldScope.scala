@@ -37,7 +37,7 @@ trait IntFieldScope extends SScope {
     markup
   }
 
-  def submitForm(markup: NodeSeq, formFieldValue: Option[String] = Some("5"), additionalValues: List[(String,String)] = Nil): Option[String] = {
+  def submitForm(markup: NodeSeq, formFieldValue: String = "5", additionalValues: List[(String,String)] = Nil): Option[String] = {
     // Lift automatically does this when wrapping up the page
     // render. Without it, our fields won't register on submission.
     session.updateFunctionMap(S.functionMap, uniqueId = "render-version", when = 0l)
@@ -48,17 +48,7 @@ trait IntFieldScope extends SScope {
     submitField.flatMap { submitFieldName =>
       val request = new MockHttpServletRequest(url = "/")
       val baseParameters: List[(String, String)] = (submitFieldName -> "_") :: additionalValues
-      request.parameters =
-        {
-          for {
-            intFieldName <- intField
-            intFieldValue <- formFieldValue
-          } yield {
-            (intFieldName -> intFieldValue) :: baseParameters
-          }
-        } getOrElse {
-          baseParameters
-        }
+      request.parameters = parametersForForm(intField, formFieldValue) ++ baseParameters
 
       testReq(request) { req =>
         session.runParams(req)
@@ -68,8 +58,14 @@ trait IntFieldScope extends SScope {
     }
   }
 
+  def parametersForForm(intFieldName: Option[String], intFieldValue: String): List[(String,String)] = {
+    intFieldName.toList.map { fieldName =>
+      (fieldName -> intFieldValue)
+    }
+  }
+
   // Returns the field id of the int field.
-  def bindAndSubmitForm(binder: (NodeSeq)=>NodeSeq, formFieldValue: Option[String] = Some("5"), additionalValues: List[(String,String)] = Nil): Option[String] = {
+  def bindAndSubmitForm(binder: (NodeSeq)=>NodeSeq, formFieldValue: String = "5", additionalValues: List[(String,String)] = Nil): Option[String] = {
     val markup = bindForm(binder)
     submitForm(markup, formFieldValue, additionalValues)
   }

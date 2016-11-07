@@ -192,12 +192,15 @@ abstract class BaseFieldHolder[
    * accessed.
    */
   protected def computeFieldValue = {
-    fieldValue.is pass {
+    fieldValue.is match {
       case Empty =>
         val validationErrors = boxedValidations.reverse.flatMap(_(Empty))
 
         addValidationErrors(validationErrors: _*)
-      case _ =>
+
+        Failure("Empty field failed validation.") ~> validationErrors
+      case other =>
+        other
     }
   }
 
