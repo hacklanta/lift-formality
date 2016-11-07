@@ -21,6 +21,7 @@ class FormSubmissionSpec extends Specification {
 
       handlerRan must_== true
     }
+
     "properly convert to the target type" in new IntFieldScope {
       var processedValue = -1
       val testForm = form.withField(formField).formalize onSuccess { value =>
@@ -31,6 +32,7 @@ class FormSubmissionSpec extends Specification {
 
       processedValue must_== 5
     }
+
     "properly fail on invalid input" in new IntFieldScope {
       var processedValue = -1
       var failedValues: List[Failure] = Nil
@@ -41,13 +43,14 @@ class FormSubmissionSpec extends Specification {
         failedValues = failures
       }
 
-      bindAndSubmitForm(testForm.binder, formFieldValue = "bad int")
+      bindAndSubmitForm(testForm.binder, formFieldValue = Some("bad int"))
 
       processedValue must_== -1
       failedValues must beLike {
         case List(net.liftweb.common.Failure(_, _, _)) => ok
       }
     }
+
     "provide input in ParamFailure if input was invalid" in new IntFieldScope {
       var failedValues: List[Failure] = Nil
 
@@ -55,7 +58,7 @@ class FormSubmissionSpec extends Specification {
         failedValues = failures
       }
 
-      bindAndSubmitForm(testForm.binder, formFieldValue = "bad int")
+      bindAndSubmitForm(testForm.binder, formFieldValue = Some("bad int"))
 
       failedValues must beLike {
         case List(ParamFailure(_, _, _, fieldValue)) =>
@@ -77,6 +80,7 @@ class FormSubmissionSpec extends Specification {
 
       handlerRan must_== false
     }
+
     "have no validation errors on successful submission" in new IntFieldScope {
       var handlerRan = false
 
@@ -90,6 +94,7 @@ class FormSubmissionSpec extends Specification {
       handlerRan must_== true
       S.errors must haveLength(0)
     }
+
     "spit out a validation error if there is one" in new IntFieldScope {
       val validatingField = formField ? { incoming: Int => Full("error") }
       val testForm = form.withField(validatingField).formalize
@@ -98,6 +103,7 @@ class FormSubmissionSpec extends Specification {
 
       S.errors must haveLength(1)
     }
+
     "associate the validation error with the field name" in new IntFieldScope {
       val validatingField = formField ? { incoming: Int => Full("error") }
       val testForm = form.withField(validatingField).formalize
@@ -112,6 +118,7 @@ class FormSubmissionSpec extends Specification {
           } must haveLength(1)
       }
     }
+
     "associate multiple validation errors with the field names" in new IntFieldScope {
       val validatingField =
         formField ?
@@ -130,6 +137,7 @@ class FormSubmissionSpec extends Specification {
           } must haveLength(3)
       }
     }
+
     "provide the validation errors in the failure handler as a ParamFailure param" in new IntFieldScope {
       var failedValues: List[Failure] = Nil
 
