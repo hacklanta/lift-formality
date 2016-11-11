@@ -406,14 +406,16 @@ case class SelectFieldHolder[
     this.copy(eventHandlers = eventHandler :: eventHandlers)
   }
 
-  override val binder: CssSel =
-    if (asRadioButtons)
+  override val binder: CssSel = {
+    if (asRadioButtons) {
       radioButtonBinder
-    else
+    } else {
       selectBinder
+    }
+  }
 
   def radioButtonBinder = {
-    val functionId = generateFunctionIdAndHandler
+    val functionId = fieldName.is
 
     val withValidations = validations.foldLeft("nothing" #> PassThru)(_ & _.binder(selector))
     val validationsAndEvents = eventHandlers.foldLeft(withValidations)(_ & _.binder(selector, optionProcessor))
@@ -467,7 +469,7 @@ case class SelectFieldHolder[
         Null
     }
 
-    val functionId = generateFunctionIdAndHandler
+    val functionId = fieldName.is
     val select =
       <select name={functionId}>{
         noncedOptions.map { option =>
@@ -604,14 +606,16 @@ case class MultiSelectFieldHolder[
     this.copy(eventHandlers = eventHandler :: eventHandlers)
   }
 
-  override val binder: CssSel =
-    if (asCheckboxes)
+  override val binder: CssSel = {
+    if (asCheckboxes) {
       checkboxBinder
-    else
+    } else {
       selectBinder
+    }
+  }
 
   def checkboxBinder = {
-    val functionId = generateFunctionIdAndHandler
+    val functionId = fieldName.is
 
     val withValidations = validations.foldLeft("nothing" #> PassThru)(_ & _.binder(selector))
     val validationsAndEvents = eventHandlers.foldLeft(withValidations)(_ & _.binder(selector, (s:String)=>Full(optionProcessor(List(s)))))
@@ -665,7 +669,7 @@ case class MultiSelectFieldHolder[
         Null
     }
 
-    val functionId = generateFunctionIdAndHandler
+    val functionId = fieldName.is
     val select =
       <select name={functionId} multiple="multiple">{
         noncedOptions.map { option =>
