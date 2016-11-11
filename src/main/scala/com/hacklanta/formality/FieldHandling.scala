@@ -121,7 +121,8 @@ abstract class BaseFieldHolder[
    * Note that FieldHolders are immutable; this returns a copy of this
    * FieldHolder with an updated validation list.
    *
-   * Aliased as validatingWith for folks who don't like operators.
+   * Aliased as `[[validatingWith(validation* validatingWith]]` for folks who
+   * don't like operators.
    */
   def ?(validation: Validation[ValidationType]) = validatingWith(validation)
 
@@ -140,7 +141,8 @@ abstract class BaseFieldHolder[
    * Note that `FieldHolder`s are immutable; this returns a copy of this
    * `FieldHolder` with an updated validation list.
    *
-   * Aliased as `[[validatingWith]]` for folks who don't like operators.
+   * Aliased as `[[[validatingWith(boxed* validatingWith]]]` for folks who don't
+   * like operators.
    */
   def ?(boxedValidation: Validation[Box[ValidationType]])(implicit dummy: DummyImplicit) = validatingWith(boxedValidation)
 
