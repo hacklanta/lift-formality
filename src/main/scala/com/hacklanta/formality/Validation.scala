@@ -13,7 +13,7 @@ import net.liftweb.util._
  * A Validation that validates a value of type T. It should return a
  * Box[String] that is Full with a validation error if there are
  * validation problems, or an empty box if there are no such problems.
- * 
+ *
  * Validations can provide a css selector that attaches
  * validation-related attributes to the input field.
  *
@@ -69,12 +69,13 @@ object basicInRange {
  * Example:
  *   myField ? basicNotEmpty
  */
-class basicNotEmpty extends Validation[String] {
-  def apply(value: String) = {
-    if (value.isEmpty)
+class basicNotEmpty extends Validation[Box[String]] {
+  def apply(value: Box[String]) = {
+    if (value.isEmpty || value.map(_.isEmpty) == Full(true)) {
       Full(S ? "validation.notEmpty")
-    else
+    } else {
       Empty
+    }
   }
 }
 object basicNotEmpty {

@@ -61,7 +61,7 @@ case class FormalityFormBase private[formality]() {
    * instead use the `withFields` or `withAjaxFields` helpers, which let you add
    * a group of fields all at once in proper order and leaves you with a form
    * that can accept submission handlers.
-   * 
+   *
    * @return A new `FormailtyFormProto` with the given field prepended to its
    *         list of fields. Note that you still need to call `formalize` or
    *         `ajaxFormalize` on the form if you want to attach submission
@@ -100,7 +100,7 @@ case class FormalityFormBase private[formality]() {
  *
  * Typing discussion
  * ---------------
- * 
+ *
  * shapeless lets us track our list of fields that can be String
  * fields, Int fields, DateMidnight fields, or any other arbitrary
  * type, while preserving those types and their order. As we build
@@ -128,7 +128,7 @@ case class FormalityFormProto[
    * instead use the `withFields` or `withAjaxFields` helpers, which let you add
    a group of fields * all at once in proper order and leaves you with a form
    * that can accept submission handlers.
-   * 
+   *
    * @return A new `FormailtyFormProto` with the given field prepended to its
    *         list of fields. Note that you still need to call `formalize` or
    *         `ajaxFormalize` on that form if you want to attach submission
@@ -537,7 +537,7 @@ case class AjaxFormalityForm[
 
   def handleSubmit() = {
     val (valueBoxes, valueResult) = computeValues()
-    
+
     submissionHandlers.foreach(_(valueBoxes))
 
     valueResult match {

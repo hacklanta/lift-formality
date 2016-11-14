@@ -45,21 +45,22 @@ trait IntFieldScope extends SScope {
     val intField = inputNameForId("int-field", markup)
     val submitField = inputNameForId("submit-field", markup)
 
-    for {
-      intFieldName <- intField
-      submitFieldName <- submitField
-    } yield {
+    submitField.flatMap { submitFieldName =>
       val request = new MockHttpServletRequest(url = "/")
-      request.parameters =
-        (intFieldName -> formFieldValue) ::
-        (submitFieldName -> "_") ::
-        additionalValues
+      val baseParameters: List[(String, String)] = (submitFieldName -> "_") :: additionalValues
+      request.parameters = parametersForForm(intField, formFieldValue) ++ baseParameters
 
       testReq(request) { req =>
         session.runParams(req)
       }
 
-      intFieldName
+      intField
+    }
+  }
+
+  def parametersForForm(intFieldName: Option[String], intFieldValue: String): List[(String,String)] = {
+    intFieldName.toList.map { fieldName =>
+      (fieldName -> intFieldValue)
     }
   }
 

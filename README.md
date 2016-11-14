@@ -48,7 +48,7 @@ A basic form snippet would look like this:
       // Assuming a case class User(name: String, age: Int, phoneNumber: String, termsAndConditions: Boolean).
       User(name, age, phoneNumber, termsAndConditions).save
     }
-  
+
   "form" #> registrationForm.binder
 ```
 
@@ -141,6 +141,15 @@ Also in progress is an object, `ParsleyValidations`, meant to support
 the set of validations that are supported by
 [Parsley.js](http://parsleyjs.org). These will have matching server-side
 validation implementations.
+
+In certain very specific cases, it can be useful to run a validation even
+if the value in question isn't actually submitted in the form. Typically
+this is used for a check that a required field was submitted, particularly
+when it comes from a checkbox or radio button. Either way, in these cases
+a validation can take a `Box[T]` instead of `T`. It will receive an `Empty`
+if the field is not submitted, and a `Full` with the deserialized value if
+the field is submitted. Lift-formality's own `notBlank`/`notEmpty` validators
+will correctly handle unsubmitted fields.
 
 ### Event handling
 
