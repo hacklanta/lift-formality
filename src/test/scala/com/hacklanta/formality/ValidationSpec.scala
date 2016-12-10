@@ -143,6 +143,35 @@ class ValidationSpec extends Specification {
       }
     }
 
+    "report the field as Empty if no boxed validations exist and there is no value for the field" in new IntFieldScope {
+      override def parametersForForm(intFieldName: Option[String], intFieldValue: String) = {
+        Nil
+      }
+
+      var seenFailures = List[Failure]()
+
+      val testForm = form.withField(formField).formalize onFailure {
+        case failures =>
+          seenFailures = failures
+      }
+
+      val fieldName = bindAndSubmitForm(testForm.binder)
+
+      seenFailures.length must_== 1
+      seenFailures must beLike {
+        case List(Failure(message, Empty, Empty)) =>
+          message must_== "Empty"
+      }
+
+      fieldName must beLike {
+        case Some(fieldName) =>
+          S.errors collect {
+            case (error, Full(name)) if fieldName == name =>
+              error
+          } must beEmpty
+      }
+    }
+
     "handle boxed validations even if there is no value for the field" in new IntFieldScope {
       override def parametersForForm(intFieldName: Option[String], intFieldValue: String) = {
         Nil
