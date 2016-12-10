@@ -200,7 +200,11 @@ abstract class BaseFieldHolder[
 
         addValidationErrors(validationErrors: _*)
 
-        Failure("Empty field failed validation.") ~> validationErrors
+        if (validationErrors.nonEmpty) {
+          Failure("Empty field failed validation.") ~> validationErrors
+        } else {
+          Empty
+        }
       case other =>
         other
     }
