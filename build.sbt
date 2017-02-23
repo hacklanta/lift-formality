@@ -9,7 +9,7 @@ scalaVersion := "2.11.8"
 resolvers += "Sonatype Snapshots Repository" at "http://oss.sonatype.org/content/repositories/snapshots"
 
 {
-  val liftVersion = "2.6"
+  val liftVersion = "3.0.1"
   libraryDependencies ++= Seq(
     "net.liftweb" %% "lift-webkit" % liftVersion,
     "net.liftweb" %% "lift-testkit" % liftVersion % "test",
