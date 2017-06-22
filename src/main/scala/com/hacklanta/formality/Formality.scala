@@ -12,6 +12,9 @@ object Formality extends FieldValueHelpers {
   def field[T](selector: String, initialValue: T)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): SimpleFieldHolder[T, T, T] = {
     SimpleFieldHolder(selector, Full(initialValue), Nil, Nil, Nil)(valueConverter, valueSerializer)
   }
+  def field[T](selector: String, initialValue: Box[T])(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): SimpleFieldHolder[T, T, T] = {
+    SimpleFieldHolder(selector, initialValue, Nil, Nil, Nil)(valueConverter, valueSerializer)
+  }
   def field[T](selector: String)(implicit valueConverter: (String)=>Box[T], valueSerializer: (T)=>String): SimpleFieldHolder[T, T, T] = {
     SimpleFieldHolder[T,T,T](selector, Empty, Nil, Nil, Nil)(valueConverter, valueSerializer)
   }
