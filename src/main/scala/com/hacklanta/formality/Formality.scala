@@ -16,6 +16,10 @@ object Formality extends FieldValueHelpers {
     SimpleFieldHolder[T,T,T](selector, Empty, Nil, Nil, Nil)(valueConverter, valueSerializer)
   }
 
+  def textareaField(selector: String, initialValue: String): TextareaHolder[String,String,String] = {
+    TextareaHolder[String,String,String](selector, Full(initialValue), Nil, Nil, Nil)
+  }
+
   // Basic file upload field, spits out a FileParamHolder.
   def fileUploadField(selector: String): FileFieldHolder[FileParamHolder, FileParamHolder, FileParamHolder] = {
     FileFieldHolder(selector, Nil, Nil, Nil)(fph => Full(fph))
