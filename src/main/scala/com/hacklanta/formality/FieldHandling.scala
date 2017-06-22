@@ -238,8 +238,12 @@ abstract class BaseFieldHolder[
     val nameTransform = (selector + " [name]") #> functionId
 
     initialValue.map { startValue =>
-      nameTransform &
-      (selector + " [value]") #> serializeValue(startValue)
+      selector #> { ns: NodeSeq => ns match {
+        case elem: Elem if elem.label == "textarea" =>
+          (nameTransform & "^ *" #> serializeValue(startValue)) apply ns
+        case _ =>
+          (nameTransform & "^ [value]" #> serializeValue(startValue)) apply ns
+      } }
     } getOrElse {
       nameTransform
     }
@@ -339,100 +343,6 @@ case class SimpleFieldHolder[
     functionId = S.fmapFunc(handler _)(funcName => funcName)
 
     functionId
-  }
-}
-/**
-  * This case class is a variant of SimpleFieldHolder for textareas.
-  * 
-  * We need it because when setting default values for fields, we usually
-  * set the value attribute of the element, but for textareas we need to
-  * set the textarea's content.
-  */
-case class TextareaHolder[
-  FieldValueType,
-  ValidationType >: FieldValueType,
-  EventHandlerType >: FieldValueType
-](
-  selector: String,
-  initialValue: Box[FieldValueType],
-  validations: List[Validation[ValidationType]],
-  boxedValidations: List[Validation[Box[ValidationType]]],
-  eventHandlers: List[EventHandler[EventHandlerType]]
-)(
-  implicit valueConverter: (String)=>Box[FieldValueType],
-           valueSerializer: (FieldValueType)=>String
-) extends BaseFieldHolder[String, FieldValueType, ValidationType, EventHandlerType](
-            selector, initialValue, validations, boxedValidations, eventHandlers
-          ) {
-  protected def convertValue(incomingValue: String) = valueConverter(incomingValue)
-  protected def serializeValue(value: FieldValueType) = valueSerializer(value)
-
-  def validatingWith(validation: Validation[ValidationType]) = {
-    this.copy(
-      selector = selector,
-      validations = validation :: validations)
-  }
-  def validatingWith(boxedValidation: Validation[Box[ValidationType]])(implicit dummy: DummyImplicit) = {
-    this.copy(boxedValidations = boxedValidation :: boxedValidations)
-  }
-  def handlingEvent(eventHandler: EventHandler[EventHandlerType]) = {
-    this.copy(eventHandlers = eventHandler :: eventHandlers)
-  }
-
-  protected def generateFunctionIdAndHandler: String = {
-    // Awkward super-dirty, but we need to reference the function id in
-    // the handler, and we only get the function id after mapping the
-    // handler, so we have to go this route. As long as you don't run
-    // the handler before the fmapFunc runs, everything is peachy.
-    //
-    // WARNING: DON'T RUN THE HANDLER BEFORE THE FMAPFUNC RUNS.
-    //
-    // Kword? ;)
-    var functionId: String = null
-
-    def handler(incomingValue: String): Unit = {
-      convertValue(incomingValue) match {
-        case Full(convertedValue) =>
-          val validationErrors =
-            validations.reverse.flatMap(_(convertedValue)) ++
-            boxedValidations.reverse.flatMap(_(Full(convertedValue)))
-
-          addValidationErrors(validationErrors: _*)
-
-          if (validationErrors.isEmpty) {
-            fieldValue(Full(convertedValue))
-          } else {
-            fieldValue(Failure(convertedValue + " failed validations.") ~> validationErrors)
-          }
-
-        case failure @ Failure(failureError, _, _) =>
-          val validationErrors = boxedValidations.reverse.flatMap(_(failure))
-
-          fieldValue(failure ~> incomingValue)
-          addValidationErrors(failureError)
-
-        case Empty =>
-          fieldValue(Failure("Unrecognized response.") ~> incomingValue)
-          addValidationErrors("Unrecognized response.")
-      }
-    }
-
-    functionId = S.fmapFunc(handler _)(funcName => funcName)
-
-    functionId
-  }
-
-  override protected def baseTransform: CssSel = {
-    val functionId = fieldName.is
-
-    val nameTransform = (selector + " [name]") #> functionId
-
-    initialValue.map { startValue => 
-      nameTransform &
-      (selector + " *") #> serializeValue(startValue)
-    } getOrElse {
-      nameTransform
-    }
   }
 }
 /**
