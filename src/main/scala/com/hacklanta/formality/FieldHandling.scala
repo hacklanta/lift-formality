@@ -763,7 +763,13 @@ case class CheckboxFieldHolder(
 
     selector #> { ns: NodeSeq => ns match {
       case element: Elem =>
-        val checkbox = <input type="checkbox" name={functionId} value={serializeValue(initialValue)} />
+        val checkedValue = if (initialValue) {
+          Some(Text("checked"))
+        } else {
+          None
+        }
+
+        val checkbox = <input type="checkbox" name={functionId} value="true" checked={checkedValue} />
 
         element.attributes.foldLeft(checkbox)(_ % _) ++
         <input type="hidden" name={functionId} value="false" />
