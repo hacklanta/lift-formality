@@ -238,12 +238,16 @@ abstract class BaseFieldHolder[
     val nameTransform = (selector + " [name]") #> functionId
 
     initialValue.map { startValue =>
-      selector #> { ns: NodeSeq => ns match {
-        case elem: Elem if elem.label == "textarea" =>
-          (nameTransform & "^ *" #> serializeValue(startValue)) apply ns
-        case _ =>
-          (nameTransform & "^ [value]" #> serializeValue(startValue)) apply ns
-      } }
+      selector #> { ns: NodeSeq =>
+        val startValueBind =
+          ns match {
+            case elem: Elem if elem.label == "textarea" =>
+              "^ *" #> serializeValue(startValue)
+            case _ =>
+              "^ [value]" #> serializeValue(startValue)
+          }
+        (nameTransform & startValueBind) apply ns
+      }
     } getOrElse {
       nameTransform
     }
