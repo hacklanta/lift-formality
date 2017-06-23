@@ -31,7 +31,7 @@ class FieldSpec extends Specification {
     }
   }
   
-  "Simple fields with an initial value" should {
+  "Simple non-textarea fields with an initial value" should {
     "only bind the name and value attributes" in new SScope {
       val formField = field[String](".boomdayada", "Dat value")
 
@@ -43,6 +43,53 @@ class FieldSpec extends Specification {
         "data-test-attribute" -> "bam",
         "name" -> ".*",
         "value" -> "Dat value"
+      )
+    }
+  }
+
+  "Simple textarea fields with an initial value" should {
+    "bind the name attribute and body" in new SScope {
+      val templateElement = <textarea class="boomdayada boomdayadan">Here's a test!</textarea>
+      val formField = field[String](".boomdayada", "Texty value")
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \(
+        "textarea",
+        "class" -> "boomdayada boomdayadan",
+        "name" -> ".*"
+      ) \> "Texty value"
+    }
+  }
+
+  "Simple fields with a Full Box for their initial value" should {
+    "set that initial value to the contents of the Box" in new SScope {
+      val formField = field[String](".boomdayada", Full("Dat value"))
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \(
+        "div",
+        "class" -> "boomdayada boomdayadan",
+        "data-test-attribute" -> "bam",
+        "name" -> ".*",
+        "value" -> "Dat value"
+      )
+    }
+  }
+
+  "Simple fields with an Empty Box for their initial value" should {
+    "leave the value attribute unchanged from the template" in new SScope {
+      val formField = field[String](".boomdayada", Empty)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \(
+        "div",
+        "class" -> "boomdayada boomdayadan",
+        "data-test-attribute" -> "bam",
+        "name" -> ".*",
+        "value" -> "markup-value"
       )
     }
   }
