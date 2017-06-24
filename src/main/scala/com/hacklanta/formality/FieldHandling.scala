@@ -238,8 +238,16 @@ abstract class BaseFieldHolder[
     val nameTransform = (selector + " [name]") #> functionId
 
     initialValue.map { startValue =>
-      nameTransform &
-      (selector + " [value]") #> serializeValue(startValue)
+      selector #> { ns: NodeSeq =>
+        val startValueBind =
+          ns match {
+            case elem: Elem if elem.label == "textarea" =>
+              "^ *" #> serializeValue(startValue)
+            case _ =>
+              "^ [value]" #> serializeValue(startValue)
+          }
+        (nameTransform & startValueBind) apply ns
+      }
     } getOrElse {
       nameTransform
     }
@@ -759,7 +767,13 @@ case class CheckboxFieldHolder(
 
     selector #> { ns: NodeSeq => ns match {
       case element: Elem =>
-        val checkbox = <input type="checkbox" name={functionId} value={serializeValue(initialValue)} />
+        val checkedValue = if (initialValue) {
+          Some(Text("checked"))
+        } else {
+          None
+        }
+
+        val checkbox = <input type="checkbox" name={functionId} value="true" checked={checkedValue} />
 
         element.attributes.foldLeft(checkbox)(_ % _) ++
         <input type="hidden" name={functionId} value="false" />
