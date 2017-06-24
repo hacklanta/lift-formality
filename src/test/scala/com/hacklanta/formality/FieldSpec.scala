@@ -879,5 +879,18 @@ class FieldSpec extends Specification {
 
       nameForType("checkbox") must_== nameForType("hidden")
     }
+
+    "set the checked attribute if there is an initial value" in new SScope {
+      val formField = checkboxField(".boomdayada", true)
+
+      val resultingMarkup = <test-parent>{formField.binder(templateElement)}</test-parent>
+
+      resultingMarkup must \(
+        "input",
+        "type" -> "checkbox",
+        "name" -> ".*",
+        "checked" -> "checked"
+      )
+    }
   }
 }
