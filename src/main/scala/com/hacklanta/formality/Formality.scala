@@ -109,6 +109,7 @@ object Formality extends FieldValueHelpers {
 
   def form = FormalityFormProto()
   def fieldGroup = FieldGroup()
+  def fieldGroup(scopingSelector: String) = FieldGroup(scopingSelector)
 
   val :: = HListies.:+:
   val :+: = HListies.:+:
