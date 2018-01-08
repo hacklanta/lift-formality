@@ -1,25 +1,33 @@
+val liftVersion = settingKey[String]("Lift Web Framework full version number")
+val liftEdition = settingKey[String]("Lift Edition (such as 2.6 or 3.0)")
+
 name := "lift-formality"
 
 organization := "com.hacklanta"
 
 version := "1.1.0-SNAPSHOT"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.11.12"
+
+liftVersion <<= liftVersion ?? "3.1.0"
+
+liftEdition <<= liftVersion apply { _.substring(0,3) }
+
+moduleName <<= (name, liftEdition) { (n, e) =>  n + "_" + e }
 
 resolvers += "Sonatype Snapshots Repository" at "http://oss.sonatype.org/content/repositories/snapshots"
 
-{
-  val liftVersion = "3.1.0"
-  libraryDependencies ++= Seq(
+libraryDependencies <++= liftVersion { liftVersion => 
+  Seq(
     "net.liftweb" %% "lift-webkit" % liftVersion,
-    "net.liftweb" %% "lift-testkit" % liftVersion % "test",
-    "org.mortbay.jetty" % "jetty" % "6.1.22" % "test"
+    "net.liftweb" %% "lift-testkit" % liftVersion % "test"
   )
 }
 
 libraryDependencies ++= Seq(
   "org.specs2" %% "specs2-core" % "3.8.5" % "test",
-  "org.specs2" %% "specs2-matcher-extra" % "3.8.5" % "test"
+  "org.specs2" %% "specs2-matcher-extra" % "3.8.5" % "test",
+  "org.mortbay.jetty" % "jetty" % "6.1.22" % "test"
 )
 
 scalacOptions ++= Seq("-deprecation","-feature","-Xfatal-warnings")
