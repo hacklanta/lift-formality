@@ -17,11 +17,13 @@ once reported on Github.
 
 ## Including
 
-You can include Formality directly as a dependency in your `build.sbt`:
+You can include Formality directly as a dependency in your `build.sbt`,
+suffixing the major and minor Lift version you are using (3.0 and 3.1 are
+currently supported):
 
 ```
 libraryDependencies ++= Seq(
-  "com.hacklanta" %% "lift-formality" % "1.0.0"
+  "com.hacklanta" %% "lift-formality_3.1" % "1.1.0"
 )
 ```
 
