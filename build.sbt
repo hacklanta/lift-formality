@@ -7,7 +7,7 @@ organization := "com.hacklanta"
 
 version := "1.2.0-SNAPSHOT"
 
-scalaVersion := "2.11.12"
+scalaVersion := "2.12.4"
 
 // Disable package scaladocs, as 2.11.12 Scaladoc + Java 9 seems to go boom.
 publishArtifact in (Compile, packageDoc) := false
@@ -28,8 +28,8 @@ libraryDependencies <++= liftVersion { liftVersion =>
 }
 
 libraryDependencies ++= Seq(
-  "org.specs2" %% "specs2-core" % "3.8.5" % "test",
-  "org.specs2" %% "specs2-matcher-extra" % "3.8.5" % "test",
+  "org.specs2" %% "specs2-core" % "4.0.2" % "test",
+  "org.specs2" %% "specs2-matcher-extra" % "4.0.2" % "test",
   "org.mortbay.jetty" % "jetty" % "6.1.22" % "test"
 )
 
