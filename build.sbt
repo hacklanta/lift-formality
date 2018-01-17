@@ -12,20 +12,19 @@ scalaVersion := "2.12.4"
 // Disable package scaladocs, as 2.11.12 Scaladoc + Java 9 seems to go boom.
 publishArtifact in (Compile, packageDoc) := false
 
-liftVersion <<= liftVersion ?? "3.1.0"
+liftVersion := (liftVersion ?? "3.1.1").value
 
-liftEdition <<= liftVersion apply { _.substring(0,3) }
+liftEdition := liftVersion.value.substring(0,3)
 
-moduleName <<= (name, liftEdition) { (n, e) =>  n + "_" + e }
+moduleName := name.value + "_" + liftEdition.value
 
 resolvers += "Sonatype Snapshots Repository" at "http://oss.sonatype.org/content/repositories/snapshots"
 
-libraryDependencies <++= liftVersion { liftVersion => 
+libraryDependencies ++=
   Seq(
-    "net.liftweb" %% "lift-webkit" % liftVersion,
-    "net.liftweb" %% "lift-testkit" % liftVersion % "test"
+    "net.liftweb" %% "lift-webkit" % liftVersion.value,
+    "net.liftweb" %% "lift-testkit" % liftVersion.value % "test"
   )
-}
 
 libraryDependencies ++= Seq(
   "org.specs2" %% "specs2-core" % "4.0.2" % "test",
@@ -58,9 +57,9 @@ pomExtra :=
   </developer>
 </developers>;
 
-publishTo <<= version { (v: String) =>
+publishTo := {
   val nexus = "https://oss.sonatype.org/"
-  if (v.trim.endsWith("SNAPSHOT"))
+  if (version.value.trim.endsWith("SNAPSHOT"))
     Some("snapshots" at nexus + "content/repositories/snapshots")
   else
     Some("releases"  at nexus + "service/local/staging/deploy/maven2")
