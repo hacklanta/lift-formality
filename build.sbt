@@ -5,9 +5,12 @@ name := "lift-formality"
 
 organization := "com.hacklanta"
 
-version := "1.1.0-SNAPSHOT"
+version := "1.1.0"
 
 scalaVersion := "2.11.12"
+
+// Disable package scaladocs, as 2.11.12 Scaladoc + Java 9 seems to go boom.
+publishArtifact in (Compile, packageDoc) := false
 
 liftVersion <<= liftVersion ?? "3.1.0"
 
