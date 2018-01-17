@@ -532,7 +532,7 @@ case class AjaxFormalityForm[
   }
 
   def submitBind = {
-    "type=submit" #> SHtml.ajaxOnSubmit(handleSubmit)
+    "type=submit" #> SHtml.ajaxOnSubmit(handleSubmit _)
   }
 
   def handleSubmit() = {
