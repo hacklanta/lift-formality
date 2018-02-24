@@ -9,6 +9,8 @@ version := "1.2.0-SNAPSHOT"
 
 scalaVersion := "2.12.4"
 
+crossScalaVersions := Seq("2.12.4", "2.11.12")
+
 // Disable package scaladocs, as 2.11.12 Scaladoc + Java 9 seems to go boom.
 publishArtifact in (Compile, packageDoc) := false
 
