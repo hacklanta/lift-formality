@@ -3,11 +3,25 @@ jdk:
   - oraclejdk8
 
 scala:
- - 2.11.8
+ - 2.11.12
+ - 2.12.4
 
-branches:
-  only:
-    - master
+cache:
+  directories:
+    - $HOME/.ivy2
+
+env:
+  - LIFT_VERSION=3.2.0
+  - LIFT_VERSION=3.1.1
+  - LIFT_VERSION=3.0.2
+
+# Add a spritz of 2.6 build.
+matrix:
+  include:
+    - scala: 2.11.12
+      env: LIFT_VERSION=2.6.3
+
+script: ./travis.sh
 
 notifications:
   webhooks:

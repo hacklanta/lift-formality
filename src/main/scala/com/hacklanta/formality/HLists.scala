@@ -18,26 +18,24 @@ object HListies {
     }
 
     def length: Int = {
-      hlist match {
-        case HNil =>
-          0
-        case head :+: rest =>
-          1 + rest.length
+      if (hlist == HNil) {
+        0
+      } else {
+        hlist match {
+          case head :+: rest =>
+            1 + rest.length
+        }
       }
     }
   }
 
   /**
-   * The last element of an HList
-   */
-  final class HNil extends HList {
-    override def toString = "HNil"
-  }
-
-  /**
    * The HNil singleton
    */
-  val HNil = new HNil()
+  final object HNil extends HList {
+    override def toString = "HNil"
+  }
+  type HNil = HNil.type
 
   /**
    * The HList cons cell
