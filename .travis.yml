@@ -11,6 +11,7 @@ cache:
     - $HOME/.ivy2
 
 env:
+  - LIFT_VERSION=3.3.0
   - LIFT_VERSION=3.2.0
   - LIFT_VERSION=3.1.1
   - LIFT_VERSION=3.0.2
