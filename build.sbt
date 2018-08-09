@@ -11,7 +11,7 @@ scalaVersion := "2.12.6"
 
 crossScalaVersions := Seq("2.12.6", "2.11.12")
 
-liftVersion := (liftVersion ?? "3.1.1").value
+liftVersion := (liftVersion ?? "3.3.0").value
 
 liftEdition := liftVersion.value.substring(0,3)
 
