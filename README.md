@@ -222,7 +222,7 @@ A complicating factor is when your form includes uploaded files.
 They will work perfectly if your form is not ajaxified, but submitting files as part of an ajax upload takes a little more effort.  A classic approach is insert an iframe and submit to that, thus preventing your page from reloading.
 
 This can be implemented clientside with the inclusion of a script along the lines of:
-(Adapted from [https://github.com/Shadowfiend/lift-ajax-file-upload-example/blob/master/src/main/webapp/static/js/fileUpload.js])
+(Adapted from [this example](https://github.com/Shadowfiend/lift-ajax-file-upload-example/blob/master/src/main/webapp/static/js/fileUpload.js]))
 
 javascript```
 $(function() {
