@@ -224,7 +224,7 @@ They will work perfectly if your form is not ajaxified, but submitting files as 
 This can be implemented clientside with the inclusion of a script along the lines of:
 (Adapted from [this example](https://github.com/Shadowfiend/lift-ajax-file-upload-example/blob/master/src/main/webapp/static/js/fileUpload.js]))
 
-javascript```
+```javascript
 $(function() {
     function submitFormToIframe($form, target) {
         $form
@@ -256,7 +256,7 @@ You may also wish to treat your uploaded files as optional.  By default, a fileU
 
 The field(s) can become optional through a conversion into Option:
 
-scala```
+```scala
 fieldGroup
             .withFields(
               fileUploadField("#anInputOfTypeFile")
