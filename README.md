@@ -252,9 +252,7 @@ $(function() {
     submitFormToIframe($('form:has(input[type=file])'), 'fileUploadExampleForm');
 });
 ```
-You may also wish to treat your uploaded files as optional.  By default, a fileUploadField will fail validation if not provided.
-
-The field(s) can become optional through a conversion into Option:
+You may also wish to treat your uploaded files as optional.  By default, a `fileUploadField` will fail validation if not provided. You can make the field(s) optional through a conversion into Option:
 
 ```scala
 fieldGroup
