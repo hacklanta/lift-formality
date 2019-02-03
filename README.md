@@ -215,6 +215,58 @@ checkbox to ensure the user cannot select it if they are below
 <a name="client-node"></a>* - Obviously we could do this on the client as
 well, but this is merely an example :) [↩](#client-note-return)
 
+### File Uploads
+
+A complicating factor is when your form includes uploaded files.
+
+They will work perfectly if your form is not ajaxified, but submitting files as part of an ajax upload takes a little more effort.  A classic approach is insert an iframe and submit to that, thus preventing your page from reloading.
+
+This can be implemented clientside with the inclusion of a script along the lines of:
+(Adapted from [this example](https://github.com/Shadowfiend/lift-ajax-file-upload-example/blob/master/src/main/webapp/static/js/fileUpload.js]))
+
+```javascript
+$(function() {
+    function submitFormToIframe($form, target) {
+        $form
+            .attr('target', target)
+            .removeAttr('onsubmit')
+            .removeAttr('action')
+            .removeAttr('onclick')
+            .attr('action', '/ajax')
+            .attr('method', 'post')
+            .attr('enctype', 'multipart/form-data' )
+            .attr('encoding', 'multipart/form-data')
+            .find('input:submit,button[type=submit]')
+            .end()
+            .append($('<input type="hidden" name="' +
+                      $form.find('input:submit').attr('name') +
+                      '" value="_" />'))
+            .after(
+                // do not use attr() to set name. IE7 will hate this: http://stackoverflow.com/questions/2105815/weird-behaviour-of-iframe-name-attribute-set-by-jquery-in-ie
+                $('<iframe id="' + target + '" name="' + target + '" />')
+                    .addClass('form-target')
+                    .css('display','none')
+            );
+    }
+
+    submitFormToIframe($('form:has(input[type=file])'), 'fileUploadExampleForm');
+});
+```
+You may also wish to treat your uploaded files as optional.  By default, a `fileUploadField` will fail validation if not provided. You can make the field(s) optional through a conversion into Option:
+
+```scala
+fieldGroup
+            .withFields(
+              fileUploadField("#anInputOfTypeFile")
+            )
+            .withBoxedConverter { optional: Box[FileParamHolder] =>
+              optional match {
+                case Full(fph) => Full(Some(fph))
+                case _         => Full(None)
+              }
+            }
+```
+
 ### Operator Allergies
 
 In case you have an aversion to using operators, the `?` operator that
