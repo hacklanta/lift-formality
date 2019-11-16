@@ -7,9 +7,9 @@ organization := "com.hacklanta"
 
 version := "1.3.0-SNAPSHOT"
 
-scalaVersion := "2.12.9"
+scalaVersion := "2.12.10"
 
-crossScalaVersions := Seq("2.12.9", "2.11.12")
+crossScalaVersions := Seq("2.12.10", "2.11.12")
 
 liftVersion := (liftVersion ?? "3.3.0").value
 
