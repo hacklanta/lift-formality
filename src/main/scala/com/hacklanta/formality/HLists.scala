@@ -41,7 +41,7 @@ object HListies {
    * The HList cons cell
    */
   final case class :+:[+H, +T <: HList](head: H, tail: T) extends HList {
-    override def toString = head + " :+: " + tail
+    override def toString = head.toString + " :+: " + tail
   }
 
   //type :+:[+H, +T <: HList] = HCons[H, T]

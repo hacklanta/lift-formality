@@ -40,7 +40,7 @@ trait IntFieldScope extends SScope {
   def submitForm(markup: NodeSeq, formFieldValue: String = "5", additionalValues: List[(String,String)] = Nil): Option[String] = {
     // Lift automatically does this when wrapping up the page
     // render. Without it, our fields won't register on submission.
-    session.updateFunctionMap(S.functionMap, uniqueId = "render-version", when = 0l)
+    session.updateFunctionMap(S.functionMap, uniqueId = "render-version", when = 0L)
 
     val intField = inputNameForId("int-field", markup)
     val submitField = inputNameForId("submit-field", markup)
