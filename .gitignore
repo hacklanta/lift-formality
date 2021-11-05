@@ -1,6 +1,7 @@
 ._*
 .DS_Store
 .DS_Store?
+.bsp/
 .ensime
 .ensime_cache/
 .ensime_lucene/
