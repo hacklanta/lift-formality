@@ -9,7 +9,7 @@ version := "1.3.0-SNAPSHOT"
 
 scalaVersion := "2.13.6"
 
-crossScalaVersions := Seq("2.13.6", "2.12.9", "2.11.12")
+crossScalaVersions := Seq("2.13.6", "2.12.14", "2.11.12")
 
 liftVersion := (liftVersion ?? "3.4.3").value
 
