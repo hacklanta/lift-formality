@@ -7,17 +7,17 @@ organization := "com.hacklanta"
 
 version := "1.3.0-SNAPSHOT"
 
-scalaVersion := "2.12.9"
+scalaVersion := "2.13.6"
 
-crossScalaVersions := Seq("2.12.9", "2.11.12")
+crossScalaVersions := Seq("2.13.6", "2.12.14", "2.11.12")
 
-liftVersion := (liftVersion ?? "3.3.0").value
+liftVersion := (liftVersion ?? "3.4.3").value
 
 liftEdition := liftVersion.value.substring(0,3)
 
 moduleName := name.value + "_" + liftEdition.value
 
-resolvers += "Sonatype Snapshots Repository" at "http://oss.sonatype.org/content/repositories/snapshots"
+resolvers += "Sonatype Snapshots Repository" at "https://oss.sonatype.org/content/repositories/snapshots"
 
 libraryDependencies ++=
   Seq(
@@ -26,8 +26,8 @@ libraryDependencies ++=
   )
 
 libraryDependencies ++= Seq(
-  "org.specs2" %% "specs2-core" % "4.0.2" % "test",
-  "org.specs2" %% "specs2-matcher-extra" % "4.0.2" % "test",
+  "org.specs2" %% "specs2-core" % "4.12.12" % "test",
+  "org.specs2" %% "specs2-matcher-extra" % "4.12.12" % "test",
   "org.mortbay.jetty" % "jetty" % "6.1.22" % "test"
 )
 
@@ -54,7 +54,7 @@ pomExtra :=
     <name>Antonio Salazar Cardozo</name>
     <email>savedfastcool@gmail.com</email>
   </developer>
-</developers>;
+</developers>
 
 publishTo := {
   val nexus = "https://oss.sonatype.org/"

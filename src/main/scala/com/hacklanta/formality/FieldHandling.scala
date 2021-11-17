@@ -519,7 +519,7 @@ case class SelectFieldHolder[
           if (validationErrors.isEmpty)
             fieldValue(Full(convertedValue))
           else
-            fieldValue(Failure(convertedValue + " failed validations.") ~> validationErrors)
+            fieldValue(Failure(convertedValue.toString + " failed validations.") ~> validationErrors)
 
         case failure @ Failure(failureError, _, _) =>
           fieldValue(failure ~> incomingValue)
@@ -801,7 +801,7 @@ case class CheckboxFieldHolder(
           if (validationErrors.isEmpty)
             fieldValue(Full(convertedValue))
           else
-            fieldValue(Failure(convertedValue + " failed validations.") ~> validationErrors)
+            fieldValue(Failure(convertedValue.toString + " failed validations.") ~> validationErrors)
       }
     }
 
@@ -869,7 +869,7 @@ case class FileFieldHolder[
           if (validationErrors.isEmpty)
             fieldValue(Full(convertedValue))
           else
-            fieldValue(Failure(convertedValue + " failed validations.") ~> validationErrors)
+            fieldValue(Failure(convertedValue.toString + " failed validations.") ~> validationErrors)
 
         case failure @ Failure(failureError, _, _) =>
           fieldValue(failure)
